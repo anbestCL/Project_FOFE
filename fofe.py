@@ -3,7 +3,7 @@ import string
 import numpy as np
 
 # FOFE ENCODING BASIC PRINCIPLE
-samples = [["ABCBC", "ABC", "ABCBD"], ["ABCBC", "ABC"]]
+samples = [["ABCBC", "ABC"], ["ABCBC", "ABC"]]
 
 
 def encode_FOFE(wordlist):
@@ -13,7 +13,7 @@ def encode_FOFE(wordlist):
     print(len(token_index))
     print(max(token_index.values()))
     param = 0.5
-    max_length = 5
+    max_length = 2
     samples_encoded = np.zeros((len(samples), max_length, len(characters)))
     for i, sent in enumerate(samples):
         sent_encoded = np.zeros((len(sent), len(characters)))

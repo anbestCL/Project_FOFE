@@ -90,87 +90,61 @@ def prepare_seq_for_padding(sequence, seq_type):
     # order in FOFE layer -> give list of tensors and original order to model
     # packed_input_sequence = pack_padded_sequence(
     # train_seq_tensor, train_seq_lengths.cpu().numpy(), batch_first=True)
-    return (seq_tensor, perm_idx) if seq_type == "words" else (seq_tensor, seq_lengths)
+    return (seq_tensor[perm_idx]) if seq_type == "words" else (seq_tensor, seq_lengths)
 
+
+# ----- PREPARING SENTENCES FOR PACKING -------------------
+# longest sentence in train_sents
+# print(len(max(train_sents, key=len)))
 
 # für dev, test ergänzen
 sent_input, sent_lengths = prepare_seq_for_padding(train_sents, "sent")
-#print(len(sent_input[0][0]), len(sent_input[0][1]))
+
+# Testing that preparing worked
+# print(sent_input[0])
 
 # Sentences are indexes, for FOFE encoding need words -> transform sequences of indexes
 # to sequences of strings
 train_sents_strings = [[id_to_word[id] for id in sent]
-                       for sent in sent_input.numpy()]
-print(train_sents_strings[-1])
-#dev_sents_strings = [[id_to_word[id] for id in sent] for sent in dev_sents]
-#test_sents_strings = [[id_to_word[id] for id in sent] for sent in train_sents]
+                       for sent in sent_input.numpy()]  # why?
+# dev_sents_strings = [[id_to_word[id] for id in sent] for sent in dev_sents]
+# test_sents_strings = [[id_to_word[id] for id in sent] for sent in train_sents]
 
-# Packing padded character sequences
+# Transforming words into sequences of letters using all ASCII characters and looking up index of character
+# sorted list
+
+# ! PROBLEM: <PAD> is translated character by character -> change to 0
 characters = string.printable
 VOCAB_CHAR = [PAD_TOKEN] + sorted(characters)
 vectorized_train_sents = [[[VOCAB_CHAR.index(
-    tok) for tok in seq] for seq in sent]for sent in train_sents_strings]
-print(vectorized_train_sents[-1])
+    tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in train_sents_strings]
+
 # vectorized_dev_sents = [[[VOCAB_CHAR.index(
 # tok) for tok in seq] for seq in sent]for sent in dev_sents_strings]
 # vectorized_test_sents = [[[VOCAB_CHAR.index(
 # tok) for tok in seq] for seq in sent]for sent in test_sents_strings]
 
-train_input = []
-for sent in vectorized_train_sents:
-    train_input.append(prepare_seq_for_padding(sent, "words"))
-
-# build tensor train_input with sent_lengths
-# reverse order of words back
-
-#print(words_input[-1][0], words_input[-2][0])
-
-# print(vectorized_train_sents[-1])
-#print(train_seq_lengths, train_seq_lengths_original)
-# print(train_seq_tensor)
-# print(perm_idx)
+# ----- PREPARE WORDS FOR PACKING -------
 
 
-""" class FOFE_Encoding(nn.Module):
-    def __init__(self):
-        super(FOFE_Encoding, self).__init__()
-        self.forgetting_factor = nn.Parameter(
-            torch.zeros(1), requires_grad=True)
-
-    def forward(self, x):
-        samples_encoded = np.zeros((len(x), MAX_LENGTH, len(characters)))
-        for i, sent in enumerate(x.data):
-            sent_encoded = np.zeros((len(sent), len(characters)))
-            for j, sample in enumerate(sent):
-                V = np.zeros((len(sample), max(VOCAB_CHAR.values())+1))
-                z = np.zeros(len(characters))
-                for k, character in enumerate(sample):
-                    index = VOCAB_CHAR.get(character)
-                    V[k, index] = 1.
-                    z = self.forgetting_factor*z + V[k]
-                sent_encoded[j] = z
-            samples_encoded[i] = sent_encoded
-        return samples_encoded
+def prepare_sents(sents, lengths):
+    train_input = []
+    for i, (sent, length) in enumerate(zip(sents, lengths)):
+        sent_reordered = prepare_seq_for_padding(sent, "words")
+        train_input.append((sent_reordered, length))
+    return train_input
 
 
-class FOFE_GRU(nn.Module):
-    def __init__(self, x):
-        super(FOFE_GRU, self).__init__()
-        self.fofe = FOFE_Encoding()
-
-    def forward(self, x):
-        x = self.fofe(x) """
+train_input_prep = prepare_sents(vectorized_train_sents, sent_lengths)
 
 
-#fofe_model = FOFE_GRU(train_input)
-# print(fofe_model.parameters)
-
-# Testing function
-
+#  Forward function of future FOFE encoding layer
+# input should be tensor with train_input and sent_lengths for later packing
 
 def forward(sentences, forgetting_factor):
-    samples_encoded = np.zeros((len(sentences), MAX_LENGTH, len(VOCAB_CHAR)))
-    for i, (sent, order) in enumerate(sentences):
+    samples_encoded = np.zeros(
+        (len(sentences), len(sentences[0][0]), len(VOCAB_CHAR)))
+    for i, (sent, _) in enumerate(sentences):
         sent_encoded = np.zeros((len(sent), len(VOCAB_CHAR)))
         for j, words in enumerate(sent):
             V = np.zeros((len(words), len(VOCAB_CHAR)))
@@ -180,13 +154,25 @@ def forward(sentences, forgetting_factor):
                 z = forgetting_factor*z + V[k]
             sent_encoded[j] = z
         samples_encoded[i] = sent_encoded
-    return samples_encoded
+    return torch.tensor(samples_encoded)
 
 
-print(train_input[-1])
-test = forward(train_input[-1], 0.5)
-print(test.shape)
+# ----- MINIMAL EXAMPLE FOR FORWARD -----------
+test_seq = [["ABCBC", "ABC", "<PAD>"]]
+test_seq2 = [[[VOCAB_CHAR.index(
+    tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in test_seq]
+# pad manually words
+test_seq2[0][1] = [0, 0] + test_seq2[0][1]
+test_seq2 = [(test_seq2[0], 2)]
+print(test_seq2)
+test2 = forward(test_seq2, 0.5)
+print(test2)
 
 
-# after encoding restore original order of words in sentences
+# ------ MINIMAL EXAMPLE FOR FORWARD WITH DATA SET ------------
+print(train_input_prep[-3])
+test = forward([train_input_prep[-3]], 0.5)
+print(test)
+
+
 # regularisation later on
