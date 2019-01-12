@@ -10,9 +10,7 @@ import math
 import torch.nn as nn
 from torch.autograd import Variable
 
-
 # Test FOFE encoding for packed input
-
 with open("data.json", "r") as f:
     data = json.load(f)
 
@@ -172,7 +170,7 @@ print(test2)
 # ------ MINIMAL EXAMPLE FOR FORWARD WITH DATA SET ------------
 print(train_input_prep[-3])
 test = forward([train_input_prep[-3]], 0.5)
-print(test)
+print(test.shape)
 
 
 # regularisation later on
