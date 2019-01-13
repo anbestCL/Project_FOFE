@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
 import numpy as np
 import string
 import math
@@ -16,9 +17,10 @@ class FOFE_Encoding(nn.Module):
             torch.zeros(1), requires_grad=True)
 
     def forward(self, input):
+        sents, lengths = input
         samples_encoded = torch.zeros(
-            (len(input), len(input[0][0]), self.vocab_size))
-        for i, (sent, _) in enumerate(input):
+            (len(sents), len(sents[0]), self.vocab_size))
+        for i, sent in enumerate(sents):
             sent_encoded = torch.zeros((len(sent), self.vocab_size))
             for j, words in enumerate(sent):
                 V = torch.zeros((len(words), self.vocab_size))
@@ -28,40 +30,62 @@ class FOFE_Encoding(nn.Module):
                     z = self.forgetting_factor*z + V[k]
                 sent_encoded[j] = z
             samples_encoded[i] = sent_encoded
-        return samples_encoded  # requires_grad=True ?
+
+        return (samples_encoded, lengths)  # requires_grad=True ?
 
 
 class FOFE_GRU(nn.Module):
-    def __init__(self, vocabsize):
+    def __init__(self, vocabsize, hiddensize, numlabels):
         super(FOFE_GRU, self).__init__()
+        self.hidden_size = hiddensize
+        self.input_size = vocabsize
 
-        self.fofe = FOFE_Encoding(vocab_size=vocabsize)
+        self.fofe = FOFE_Encoding(vocab_size=self.input_size)
 
-        #self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=0.5)
 
-        # (seq_len, batch_size, input_size)
-        #self.GRU = nn.GRU(input_size = char_encoding, hidden_size = HIDDEN_SIZE, bidirectional = True)
+        self.gru = nn.GRU(input_size=self.input_size, hidden_size=self.hidden_size,
+                          bidirectional=True, batch_first=True)
 
-        #self.Linear = nn.Linear(input_size = HIDDEN_SIZE, output = NUM_LABELS)
-        #self.activation = nn.Softmax()
+        self.linear = nn.Linear(
+            in_features=self.hidden_size, out_features=numlabels)
+        self.activation = nn.Softmax()
 
     def forward(self, x):
-        x = self.fofe(x)
+        x, lengths = self.fofe(x)
+        x = self.dropout(x)
+        # packed sequences only supported by rnn layers, so pack before rnn layer and unpack afterwards
+        packed_input = pack_padded_sequence(
+            x, lengths.cpu().numpy(), batch_first=True)
+        packed_output, _ = self.gru(packed_input)
+
+        # Reshape *final* output to (batch_size, seqlen, hidden_size)
+        padded = pad_packed_sequence(packed_output, batch_first=True)
+        I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
+        I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
+        out = torch.gather(padded[0], 2, I).squeeze(1)
+
+        return self.activation(self.linear(out))
+
 
 ###### MAIN PROCESSING #############
 
 
 VOCAB_CHAR_SIZE = len(['<PAD>'] + sorted(string.printable))
+HIDDEN_SIZE = 50
+NUM_LABELS = 192
 
-prep_data = DataPrep("data.json")
+prep_data = DataPrep("data.json", batchsize=8)
 train_input = prep_data.train_input
 
-fofe_model = FOFE_GRU(VOCAB_CHAR_SIZE)
+fofe_model = FOFE_GRU(VOCAB_CHAR_SIZE, HIDDEN_SIZE, NUM_LABELS)
 output = fofe_model(train_input)
+for name, param in fofe_model.named_parameters():
+    if param.requires_grad:
+        print(name, param.data)
 
 # TODO
 # packing sentences into batches
-# packing input with lengths tensor before lstm layer
 # preparing labels
 
 

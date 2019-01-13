@@ -13,7 +13,7 @@ from torch.autograd import Variable
 
 class DataPrep:
 
-    def __init__(self, jsonfile):
+    def __init__(self, jsonfile, batchsize):
         with open(jsonfile, "r") as f:
             data = json.load(f)
 
@@ -101,11 +101,11 @@ class DataPrep:
         # order in FOFE layer -> give list of tensors and original order to model
         return (seq_tensor[perm_idx]) if seq_type == "words" else (seq_tensor, seq_lengths)
 
-    def _prepare_sents(self, sents, lengths):
+    def _prepare_sents(self, sents):
         sentences = []
-        for i, (sent, length) in enumerate(zip(sents, lengths)):
+        for i, sent in enumerate(sents):
             sent_reordered = self._prepare_seq_for_padding(sent, "words")
-            sentences.append((sent_reordered, length))
+            sentences.append(sent_reordered)
         return sentences
 
     def _prepare_data(self, sents):
@@ -128,13 +128,12 @@ class DataPrep:
             tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in sents_strings]
 
         # Prepare words for packing
-        input_prep = self._prepare_sents(vectorized_sents, sent_lengths)
-        return input_prep
+        input_prep = self._prepare_sents(vectorized_sents)
+        return (input_prep, sent_lengths)
 
 
 if __name__ == "__main__":
-    prep_data = DataPrep("data.json")
-    print(prep_data.train_input[-3])
+    prep_data = DataPrep("data.json", 8)
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing
@@ -142,9 +141,10 @@ if __name__ == "__main__":
     VOCAB_CHAR = ['<PAD>'] + sorted(string.printable)
 
     def forward(sentences, forgetting_factor):
+        sents, lengths = sentences
         samples_encoded = np.zeros(
-            (len(sentences), len(sentences[0][0]), len(VOCAB_CHAR)))
-        for i, (sent, _) in enumerate(sentences):
+            (len(sents), len(sents[0]), len(VOCAB_CHAR)))
+        for i, sent in enumerate(sents):
             sent_encoded = np.zeros((len(sent), len(VOCAB_CHAR)))
             for j, words in enumerate(sent):
                 V = np.zeros((len(words), len(VOCAB_CHAR)))
@@ -162,12 +162,15 @@ if __name__ == "__main__":
         tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in test_seq]
     # pad manually words
     test_seq2[0][1] = [0, 0] + test_seq2[0][1]
-    test_seq2 = [(test_seq2[0], 2)]
+    test_seq2 = ([test_seq2[0]], [2])
     print(test_seq2)
     test2 = forward(test_seq2, 0.5)
     print(test2)
 
     # ------ MINIMAL EXAMPLE FOR FORWARD WITH DATA SET ------------
-    print(prep_data.train_input[-3])
-    test = forward([prep_data.train_input[-3]], 0.5)
-    print(test.shape)
+    print(prep_data.train_input[0][-3])
+    test = forward(
+        ([prep_data.train_input[0][-3]], [prep_data.train_input[1][-3]]), 0.5)
+    print(test)
+
+    # Remaining questions: padded 0 transformed in Encoding as if a character => ?
