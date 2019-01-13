@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
+import torch.optim as optim
 import numpy as np
 import string
 import math
@@ -49,7 +50,7 @@ class FOFE_GRU(nn.Module):
 
         self.linear = nn.Linear(
             in_features=self.hidden_size, out_features=numlabels)
-        self.activation = nn.Softmax()
+        self.activation = nn.Softmax(dim=1)
 
     def forward(self, x):
         x, lengths = self.fofe(x)
@@ -64,8 +65,9 @@ class FOFE_GRU(nn.Module):
         I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
         I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
         out = torch.gather(padded[0], 2, I).squeeze(1)
-
-        return self.activation(self.linear(out))
+        out = self.activation(self.linear(out))
+        out = out.view(-1, out.size(2), out.size(1))
+        return out
 
 
 ###### MAIN PROCESSING #############
@@ -73,44 +75,34 @@ class FOFE_GRU(nn.Module):
 
 VOCAB_CHAR_SIZE = len(['<PAD>'] + sorted(string.printable))
 HIDDEN_SIZE = 50
-NUM_LABELS = 192
+NUM_EPOCHS = 1
 
 prep_data = DataPrep("data.json", batchsize=8)
+NUM_LABELS = len(prep_data.label_to_id)
 train_input = prep_data.train_input
+train_labels = prep_data.train_labels
 
 fofe_model = FOFE_GRU(VOCAB_CHAR_SIZE, HIDDEN_SIZE, NUM_LABELS)
-output = fofe_model(train_input)
-for name, param in fofe_model.named_parameters():
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(fofe_model.parameters(), lr=0.0001, weight_decay=0.001)
+""" for name, param in fofe_model.named_parameters():
     if param.requires_grad:
-        print(name, param.data)
+        print(name, param.data) """
 
-# TODO
-# packing sentences into batches
-# preparing labels
-
-
-""" 
-
-# Create model
-fofe_model = FOFE_GRU(num_features)
-optimizer = optim.Adam(fofe_model.parameters(), lr=0.0001, weight_decay = 0.001)
-
-# Train model
-num_epochs = 20
-for epoch in range(num_epochs):
+for epoch in range(NUM_EPOCHS):
     loss_accum = 0.0
-    for i in range(len(train_y)):
-        x_i = np_to_torch(train_x[i])
-        y_i = np_to_torch(train_y[i])
-        optimizer.zero_grad()   # zero the gradient buffers
-        output = fofe_model.forward(x_i)
-        loss = criterion(output, y_i)
+    for batch, (labels, lengths) in zip(train_input, train_labels):
+        optimizer.zero_grad()
+        output = fofe_model.forward(batch)
+        loss = criterion(output, labels)
         loss_accum += loss.data.item()
         loss.backward()
         optimizer.step()    # Does the update
     # Evaluate model
-    print("train loss:", loss_accum/len(train_y)) #Division braucht man nur, weil man durch i iteriert
-    output_dev = linreg_model.forward(np_to_torch(dev_x))
-    loss_dev = criterion(output_dev, np_to_torch(dev_y))
-    print("dev loss", loss_dev.data.item())
- """
+    # Division braucht man nur, weil man durch i iteriert
+    print("train loss:", loss_accum/len(train_input))
+    #output_dev = linreg_model.forward(np_to_torch(dev_x))
+    #loss_dev = criterion(output_dev, np_to_torch(dev_y))
+    #print("dev loss", loss_dev.data.item())
+
+# Questions: CrossEntropy-Correct? Padding überprüfen?

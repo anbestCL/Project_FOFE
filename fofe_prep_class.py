@@ -27,9 +27,13 @@ class DataPrep:
 
         self._extract(data)
         self._reorganize_data()
+        self.batch_size = batchsize
         self.train_input = self._prepare_data(self.train_sents)
         self.dev_input = self._prepare_data(self.dev_sents)
         self.test_input = self._prepare_data(self.test_sents)
+        self.train_labels = self._prepare_labels(self.train_labels)
+        self.dev_labels = self._prepare_labels(self.dev_labels)
+        self.test_labels = self._prepare_labels(self.test_labels)
 
     def _extract(self, data):
         # Extract data from file
@@ -108,28 +112,52 @@ class DataPrep:
             sentences.append(sent_reordered)
         return sentences
 
+    def _batch(self, seq):
+        l = len(seq)
+        for ndx in range(0, l, self.batch_size):
+            yield seq[ndx:min(ndx + self.batch_size, l)]
+
     def _prepare_data(self, sents):
 
         # Prepare sentences for packing
         id_to_word = {id: word for word, id in self.word_to_id.items()}
-        sent_input, sent_lengths = self._prepare_seq_for_padding(sents, "sent")
-        # Sentences are indexes, for FOFE encoding need words -> transform sequences of indexes
-        # to sequences of strings
-        sents_strings = [[id_to_word[id] for id in sent]
-                         for sent in sent_input.numpy()]
+        batches = []
+        for batch in self._batch(sents):
+            sent_input, sent_lengths = self._prepare_seq_for_padding(
+                batch, "sent")
+            # Sentences are indexes, for FOFE encoding need words -> transform sequences of indexes
+            # to sequences of strings
+            sents_strings = [[id_to_word[id] for id in sent]
+                             for sent in sent_input.numpy()]
 
-        # Transforming words into sequences of letters using all ASCII characters and looking up index of character
-        # sorted list
+            # Transforming words into sequences of letters using all ASCII characters and looking up index of character
+            # sorted list
 
-        # ! PROBLEM: <PAD> is translated character by character -> change to 0
-        characters = string.printable
-        VOCAB_CHAR = ['<PAD>'] + sorted(characters)
-        vectorized_sents = [[[VOCAB_CHAR.index(
-            tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in sents_strings]
+            # ! PROBLEM: <PAD> is translated character by character -> change to 0
+            characters = string.printable
+            VOCAB_CHAR = ['<PAD>'] + sorted(characters)
+            vectorized_sents = [[[VOCAB_CHAR.index(
+                tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in sents_strings]
 
-        # Prepare words for packing
-        input_prep = self._prepare_sents(vectorized_sents)
-        return (input_prep, sent_lengths)
+            # Prepare words for packing
+            input_prep = self._prepare_sents(vectorized_sents)
+            batches.append((input_prep, sent_lengths))
+        return batches
+
+    def _to_categorical(self, seq, numclasses):
+        return np.eye(numclasses, dtype='uint8')[seq]
+
+    def _prepare_labels(self, labels):
+        batches_l = []
+        for batch in self._batch(labels):
+            padded_labels, padded_labels_lengths = self._prepare_seq_for_padding(
+                batch, "sent")
+            """ binary_labels = []
+            for seq in padded_labels:
+                binary_seq = self._to_categorical(seq, len(self.label_to_id))
+                binary_labels.append(binary_seq) """
+            batches_l.append((padded_labels, padded_labels_lengths))
+        return batches_l
 
 
 if __name__ == "__main__":
@@ -163,14 +191,25 @@ if __name__ == "__main__":
     # pad manually words
     test_seq2[0][1] = [0, 0] + test_seq2[0][1]
     test_seq2 = ([test_seq2[0]], [2])
-    print(test_seq2)
+    # print(test_seq2)
     test2 = forward(test_seq2, 0.5)
-    print(test2)
+    # print(test2)
 
     # ------ MINIMAL EXAMPLE FOR FORWARD WITH DATA SET ------------
-    print(prep_data.train_input[0][-3])
+    """ print(prep_data.train_input[0][-3])
     test = forward(
         ([prep_data.train_input[0][-3]], [prep_data.train_input[1][-3]]), 0.5)
-    print(test)
+    print(test) """
+
+    # ------- TESTING BATCHES --------
+    # print(len(prep_data.train_input))
+    for batch in prep_data.train_input:
+        test = forward(batch, 0.5)
+        # print(test)
+
+    # ------ TESTING LABELS TRANSFORMATION ---------
+    # print(len(prep_data.train_labels))
+    # print(len(prep_data.train_labels[0][0][0]))
+    # print(len(prep_data.train_input[0][0][0]))
 
     # Remaining questions: padded 0 transformed in Encoding as if a character => ?
