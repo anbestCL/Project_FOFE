@@ -10,41 +10,16 @@ import json
 from fofe_prep_class import DataPrep
 
 
-class FOFE_Encoding(nn.Module):
-    def __init__(self, vocab_size):
-        super(FOFE_Encoding, self).__init__()
-        self.vocab_size = vocab_size
-        self.forgetting_factor = nn.Parameter(
-            torch.zeros(1), requires_grad=True)
-
-    def forward(self, input):
-        sents, lengths = input
-        samples_encoded = torch.zeros(
-            (len(sents), len(sents[0]), self.vocab_size))
-        for i, sent in enumerate(sents):
-            sent_encoded = torch.zeros((len(sent), self.vocab_size))
-            for j, words in enumerate(sent):
-                V = torch.zeros((len(words), self.vocab_size))
-                z = torch.zeros(self.vocab_size)
-                for k, char_id in enumerate(words):
-                    V[k, char_id] = 1.
-                    z = self.forgetting_factor*z + V[k]
-                sent_encoded[j] = z
-            samples_encoded[i] = sent_encoded
-
-        return (samples_encoded, lengths)  # requires_grad=True ?
-
-
-class FOFE_GRU(nn.Module):
-    def __init__(self, vocabsize, hiddensize, numlabels):
-        super(FOFE_GRU, self).__init__()
+class Classic_GRU(nn.Module):
+    def __init__(self, vocabsize, embeddingsize, hiddensize, numlabels):
+        super(Classic_GRU, self).__init__()
         self.hidden_size = hiddensize
 
-        self.fofe = FOFE_Encoding(vocab_size=self.input_size)
-
+        self.embedding = nn.Embedding(
+            num_embeddings=vocabsize, embedding_dim=embeddingsize)
         self.dropout = nn.Dropout(p=0.5)
 
-        self.gru = nn.GRU(input_size=vocabsize, hidden_size=self.hidden_size,
+        self.gru = nn.GRU(input_size=embeddingsize, hidden_size=self.hidden_size,
                           bidirectional=True, batch_first=True)
 
         self.linear = nn.Linear(
@@ -52,7 +27,8 @@ class FOFE_GRU(nn.Module):
         self.activation = nn.Softmax(dim=1)
 
     def forward(self, x):
-        x, lengths = self.fofe(x)
+        x, lengths = x
+        x = self.embedding(x)
         x = self.dropout(x)
         # packed sequences only supported by rnn layers, so pack before rnn layer and unpack afterwards
         packed_input = pack_padded_sequence(
@@ -61,6 +37,7 @@ class FOFE_GRU(nn.Module):
 
         # Reshape *final* output to (batch_size, seqlen, hidden_size)
         padded = pad_packed_sequence(packed_output, batch_first=True)
+        print(padded.shape)
         I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
         I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
         out = torch.gather(padded[0], 2, I).squeeze(1)
@@ -68,4 +45,4 @@ class FOFE_GRU(nn.Module):
         out = out.view(-1, out.size(2), out.size(1))
         return out
 
-# Questions: CrossEntropy-Correct? Padding überprüfen?
+# Questions: trained embeddings?
