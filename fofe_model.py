@@ -27,8 +27,9 @@ class FOFE_Encoding(nn.Module):
                 V = torch.zeros((len(words), self.vocab_size))
                 z = torch.zeros(self.vocab_size)
                 for k, char_id in enumerate(words):
-                    V[k, char_id] = 1.
-                    z = self.forgetting_factor*z + V[k]
+                    if char_id != 0:
+                        V[k, char_id] = 1.
+                        z = self.forgetting_factor*z + V[k]
                 sent_encoded[j] = z
             samples_encoded[i] = sent_encoded
 
@@ -40,7 +41,7 @@ class FOFE_GRU(nn.Module):
         super(FOFE_GRU, self).__init__()
         self.hidden_size = hiddensize
 
-        self.fofe = FOFE_Encoding(vocab_size=self.input_size)
+        self.fofe = FOFE_Encoding(vocab_size=vocabsize)
 
         self.dropout = nn.Dropout(p=0.5)
 
@@ -49,7 +50,6 @@ class FOFE_GRU(nn.Module):
 
         self.linear = nn.Linear(
             in_features=self.hidden_size, out_features=numlabels)
-        self.activation = nn.Softmax(dim=1)
 
     def forward(self, x):
         x, lengths = self.fofe(x)
@@ -60,12 +60,11 @@ class FOFE_GRU(nn.Module):
         packed_output, _ = self.gru(packed_input)
 
         # Reshape *final* output to (batch_size, seqlen, hidden_size)
-        padded = pad_packed_sequence(packed_output, batch_first=True)
+        padded = pad_packed_sequence(
+            packed_output, padding_value=0.0, batch_first=True)
         I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
         I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
         out = torch.gather(padded[0], 2, I).squeeze(1)
-        out = self.activation(self.linear(out))
+        out = self.linear(out)
         out = out.view(-1, out.size(2), out.size(1))
         return out
-
-# Questions: CrossEntropy-Correct? Padding überprüfen?

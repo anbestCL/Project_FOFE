@@ -13,7 +13,7 @@ from torch.autograd import Variable
 
 class DataPrep:
 
-    def __init__(self, jsonfile, batchsize):
+    def __init__(self, jsonfile, batchsize, modelname):
         with open(jsonfile, "r") as f:
             data = json.load(f)
 
@@ -28,9 +28,14 @@ class DataPrep:
         self._extract(data)
         self._reorganize_data()
         self.batch_size = batchsize
-        self.train_input = self._prepare_data(self.train_sents)
-        self.dev_input = self._prepare_data(self.dev_sents)
-        self.test_input = self._prepare_data(self.test_sents)
+        if modelname == "FOFE":
+            self.train_input = self._prepare_data(self.train_sents)
+            self.dev_input = self._prepare_data(self.dev_sents)
+            self.test_input = self._prepare_data(self.test_sents)
+        elif modelname == "Classic":
+            self.train_input = self._prepare_labels(self.train_sents)
+            self.dev_input = self._prepare_labels(self.dev_sents)
+            self.test_input = self._prepare_labels(self.test_sents)
         self.train_labels = self._prepare_labels(self.train_labels)
         self.dev_labels = self._prepare_labels(self.dev_labels)
         self.test_labels = self._prepare_labels(self.test_labels)
@@ -86,6 +91,9 @@ class DataPrep:
         self.label_to_id["".join(label)] = 126
         self.word_to_id["<PAD>"] = 0
         self.label_to_id["O"] = 0
+        self.label_to_id = {label: id+1 for (label,
+                                             id) in self.label_to_id.items()}
+        self.label_to_id["<PAD>"] = 0
 
     def _prepare_seq_for_padding(self, sequence, seq_type):
         seq_lengths = LongTensor(list(map(len, sequence)))
@@ -161,7 +169,7 @@ class DataPrep:
 
 
 if __name__ == "__main__":
-    prep_data = DataPrep("data.json", 8)
+    prep_data = DataPrep("data.json", 8, "FOFE")
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing
@@ -178,8 +186,9 @@ if __name__ == "__main__":
                 V = np.zeros((len(words), len(VOCAB_CHAR)))
                 z = np.zeros(len(VOCAB_CHAR))
                 for k, char_id in enumerate(words):
-                    V[k, char_id] = 1.
-                    z = forgetting_factor*z + V[k]
+                    if char_id != 0:
+                        V[k, char_id] = 1.
+                        z = forgetting_factor*z + V[k]
                 sent_encoded[j] = z
             samples_encoded[i] = sent_encoded
         return torch.tensor(samples_encoded)
@@ -191,9 +200,9 @@ if __name__ == "__main__":
     # pad manually words
     test_seq2[0][1] = [0, 0] + test_seq2[0][1]
     test_seq2 = ([test_seq2[0]], [2])
-    # print(test_seq2)
+    print(test_seq2)
     test2 = forward(test_seq2, 0.5)
-    # print(test2)
+    print(test2)
 
     # ------ MINIMAL EXAMPLE FOR FORWARD WITH DATA SET ------------
     """ print(prep_data.train_input[0][-3])
@@ -211,5 +220,3 @@ if __name__ == "__main__":
     # print(len(prep_data.train_labels))
     # print(len(prep_data.train_labels[0][0][0]))
     # print(len(prep_data.train_input[0][0][0]))
-
-    # Remaining questions: padded 0 transformed in Encoding as if a character => ?

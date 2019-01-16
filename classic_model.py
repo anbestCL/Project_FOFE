@@ -28,8 +28,7 @@ class Classic_GRU(nn.Module):
 
     def forward(self, x):
         x, lengths = x
-        x = self.embedding(x)
-        x = self.dropout(x)
+        x = self.dropout(self.embedding(x))
         # packed sequences only supported by rnn layers, so pack before rnn layer and unpack afterwards
         packed_input = pack_padded_sequence(
             x, lengths.cpu().numpy(), batch_first=True)
@@ -37,7 +36,7 @@ class Classic_GRU(nn.Module):
 
         # Reshape *final* output to (batch_size, seqlen, hidden_size)
         padded = pad_packed_sequence(packed_output, batch_first=True)
-        print(padded.shape)
+        # print(padded.shape)
         I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
         I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
         out = torch.gather(padded[0], 2, I).squeeze(1)

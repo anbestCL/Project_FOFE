@@ -19,9 +19,10 @@ class Tagger:
     def __init__(self, modelname, datafile, batchsize, embeddingsize, hiddensize, numepochs):
         vocab_char_size = len(['<PAD>'] + sorted(string.printable))
 
-        self.data = DataPrep(datafile, batchsize)
+        self.data = DataPrep(datafile, batchsize, modelname)
         numlabels = len(self.data.label_to_id)
         vocabsize = len(self.data.word_to_id)
+        print(self.data.label_to_id["O"])
 
         self.train(modelname, vocabsize, vocab_char_size, embeddingsize,
                    hiddensize, numepochs, numlabels)
@@ -37,7 +38,7 @@ class Tagger:
         elif modelname == "Classic":
             model = Classic_GRU(vocab_size, embedding_size,
                                 hidden_size, num_labels)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss(ignore_index=0)
         optimizer = optim.Adam(model.parameters(),
                                lr=0.0001, weight_decay=0.001)
         best_acc = 0
@@ -48,6 +49,7 @@ class Tagger:
             for batch, (labels, lengths) in zip(self.data.train_input, self.data.train_labels):
                 optimizer.zero_grad()
                 output = model.forward(batch)
+                print(output.shape)
                 loss = criterion(output, labels)
                 loss_accum += loss.data.item()
                 loss.backward()
@@ -67,7 +69,23 @@ class Tagger:
 
 
 #Tagger("FOFE", "data.json", batchsize=8, hiddensize=50, numepochs=6)
-Tagger("Classic", datafile="data.json", batchsize=8,
+Tagger("FOFE", datafile="data.json", batchsize=8,
        embeddingsize=100, hiddensize=50, numepochs=6)
 
+# pack_padded_sequence
+# Auswirkung auf Loss => ignore_index = 0
+# Auswirkung auf Layer => ?
+
+
 # Questions: Eval on Acc? count correct labels?
+
+""" 
+# compute the action predictions
+      _, predicted_actionIDs = action_scores.max(dim=-1)
+         
+      predicted_actionIDs = predicted_actionIDs.cpu().data.numpy()
+      actionIDs = actionIDs.cpu().data.numpy()
+      num_actions += len(actionIDs)
+      num_correct += sum([1 for a,a2 in zip(actionIDs,predicted_actionIDs) if a==a2])
+
+      loss_sum += float(loss) """
