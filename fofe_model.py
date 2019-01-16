@@ -60,6 +60,7 @@ class FOFE_GRU(nn.Module):
         packed_output, _ = self.gru(packed_input)
 
         # Reshape *final* output to (batch_size, seqlen, hidden_size)
+        # add padding_value to ignore padded elements in next layers
         padded = pad_packed_sequence(
             packed_output, padding_value=0.0, batch_first=True)
         I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)

@@ -9,14 +9,13 @@ import json
 import math
 import torch.nn as nn
 from torch.autograd import Variable
+from os import walk
 
 
 class DataPrep:
 
-    def __init__(self, jsonfile, batchsize, modelname):
-        with open(jsonfile, "r") as f:
-            data = json.load(f)
-
+    def __init__(self, datafile, batchsize, modelname):
+        self.batch_size = batchsize
         self.train_sents = []
         self.dev_sents = []
         self.test_sents = []
@@ -25,13 +24,24 @@ class DataPrep:
         self.dev_labels = []
         self.test_labels = []
 
-        self._extract(data)
-        self._reorganize_data()
-        self.batch_size = batchsize
+        # format data depending on corpus
+        if datafile.startswith("Atis"):
+            self._init_atis(datafile, batchsize, modelname)
+        elif datafile.startswith("Tiger"):
+            self._init_tiger(datafile, batchsize, modelname)
+
+    # Following functions are specific for the transforming of the Atis dataset
+
+    def _init_atis(self, datafile, batchsize, modelname):
+        with open(datafile, "r") as f:
+            data = json.load(f)
+
+        self._read_Atis_data(data)
+        self._reorganize_Atis_data()
         if modelname == "FOFE":
-            self.train_input = self._prepare_data(self.train_sents)
-            self.dev_input = self._prepare_data(self.dev_sents)
-            self.test_input = self._prepare_data(self.test_sents)
+            self.train_input = self._prepare_data(self.train_sents, "eng")
+            self.dev_input = self._prepare_data(self.dev_sents, "eng")
+            self.test_input = self._prepare_data(self.test_sents, "eng")
         elif modelname == "Classic":
             self.train_input = self._prepare_labels(self.train_sents)
             self.dev_input = self._prepare_labels(self.dev_sents)
@@ -40,7 +50,7 @@ class DataPrep:
         self.dev_labels = self._prepare_labels(self.dev_labels)
         self.test_labels = self._prepare_labels(self.test_labels)
 
-    def _extract(self, data):
+    def _read_Atis_data(self, data):
         # Extract data from file
         self.word_to_id = data["vocab"]
         self.label_to_id = data["label_dict"]
@@ -62,44 +72,110 @@ class DataPrep:
         replacement = {i: j, j: i}
         return [[replacement.get(id, id) for id in sentence] for sentence in sentences]
 
-    def _reorganize_data(self):
+    def _reorganize_labels(self, labels):
+        return [[label+1 for label in sents] for sents in labels]
+
+    def _reorganize_Atis_data(self):
 
         new_word_id = self.word_to_id["<PAD>"]
-        # O = Outside token, Wörter, die nicht mit B oder I getaggt werden
-        new_label_id = self.label_to_id["O"]
-
         word = [key for key, value in self.word_to_id.items() if value ==
                 0]  # "'d"
-        label = [key for key, value in self.label_to_id.items() if value ==
-                 0]  # 'B-aircraft_code'
-
-        reorganized_sents = []
-        for sents in [self.train_sents, self.dev_sents, self.test_sents]:
-            new_sents = self._reorganize(sents, new_word_id, 0)
-            reorganized_sents.append(new_sents)
-
-        self.train_sents, self.dev_sents, self.test_sents = reorganized_sents
-
-        reorganized_labels = []
-        for labels in [self.train_labels, self.dev_labels, self.test_labels]:
-            new_labels = self._reorganize(labels, new_label_id, 0)
-            reorganized_labels.append(new_labels)
-
-        self.train_labels, self.dev_labels, self.test_labels = reorganized_labels
+        # switch index of <PAD> to 0 in sentences
+        self.train_sents = self._reorganize(self.train_sents, new_word_id, 0)
+        self.dev_sents = self._reorganize(self.dev_sents, new_word_id, 0)
+        self.test_sents = self._reorganize(self.test_sents, new_word_id, 0)
 
         self.word_to_id["".join(word)] = 572
-        self.label_to_id["".join(label)] = 126
         self.word_to_id["<PAD>"] = 0
-        self.label_to_id["O"] = 0
+
+        # shift all indizes by 1 to insert <PAD> token with index 0 for padding
         self.label_to_id = {label: id+1 for (label,
                                              id) in self.label_to_id.items()}
         self.label_to_id["<PAD>"] = 0
+        self.train_labels = self._reorganize_labels(self.train_labels)
+        self.dev_labels = self._reorganize_labels(self.dev_labels)
+        self.test_labels = self._reorganize_labels(self.test_labels)
+
+    # Following functions are specific to treating Tiger data
+
+    def _init_tiger(self, datafile, batchsize, modelname):
+        self.tagset = set()
+        self.vocab = set()
+
+        for (dirpath, dirnames, filenames) in walk(datafile):
+            for filename in filenames:
+                if filename.startswith("develop"):
+                    with open(dirpath+filename) as f:
+                        self._read_Tiger_data(
+                            f, self.dev_sents, self.dev_labels)
+                elif filename.startswith("train"):
+                    with open(dirpath+filename) as f:
+                        self._read_Tiger_data(
+                            f, self.train_sents, self.train_labels)
+                else:
+                    with open(dirpath+filename) as f:
+                        self._read_Tiger_data(
+                            f, self.test_sents, self.test_labels)
+
+        self._reorganize_Tiger_data()
+        if modelname == "FOFE":
+            self.train_input = self._prepare_data(self.train_sents, "de")
+            self.dev_input = self._prepare_data(self.dev_sents, "de")
+            self.test_input = self._prepare_data(self.test_sents, "de")
+        elif modelname == "Classic":
+            self.train_input = self._prepare_labels(self.train_sents)
+            self.dev_input = self._prepare_labels(self.dev_sents)
+            self.test_input = self._prepare_labels(self.test_sents)
+        self.train_labels = self._prepare_labels(self.train_labels)
+        self.dev_labels = self._prepare_labels(self.dev_labels)
+        self.test_labels = self._prepare_labels(self.test_labels)
+
+    def _read_Tiger_data(self, file, sentences, labels):
+
+        sentence_words = []
+        sentence_tags = []
+
+        for line in file:
+            if line != "\n":
+                word, tag = line.strip().split("\t")
+                sentence_words.append(word)
+                sentence_tags.append(tag)
+                self.tagset.add(tag)
+                self.vocab.add(word)
+            else:
+                sentences.append(sentence_words)
+                labels.append(sentence_tags)
+                sentence_words = []
+                sentence_tags = []
+
+    def _reorganize_Tiger_data(self):
+        self.word_to_id = {word: i+1 for i, word in enumerate(self.vocab)}
+        self.word_to_id["<PAD>"] = 0
+        self.label_to_id = {label: i+1 for i, label in enumerate(self.tagset)}
+        self.label_to_id["<PAD>"] = 0
+
+        self.train_sents = [[self.word_to_id[word]
+                             for word in sent] for sent in self.train_sents]
+        self.dev_sents = [[self.word_to_id[word]
+                           for word in sent] for sent in self.dev_sents]
+        self.test_sents = [[self.word_to_id[word]
+                            for word in sent] for sent in self.test_sents]
+
+        self.train_labels = [[self.label_to_id[word]
+                              for word in sent] for sent in self.train_labels]
+        self.dev_labels = [[self.label_to_id[word]
+                            for word in sent] for sent in self.dev_labels]
+        self.test_labels = [[self.label_to_id[word]
+                             for word in sent] for sent in self.test_labels]
+
+    # Following functions prepare data (both Atis and Tiger) to give as input to model
 
     def _prepare_seq_for_padding(self, sequence, seq_type):
         seq_lengths = LongTensor(list(map(len, sequence)))
         seq_tensor = Variable(torch.zeros(
             (len(sequence), seq_lengths.max()))).long()
         for idx, (seq, seqlen) in enumerate(zip(sequence, seq_lengths)):
+            # we need padding on both sentence and word level, but similar method
             if seq_type == "words":
                 seq_tensor[idx, seq_lengths.max()-seqlen:] = LongTensor(seq)
             elif seq_type == "sent":
@@ -109,8 +185,6 @@ class DataPrep:
             0, descending=True)
         seq_tensor = seq_tensor[perm_idx]
 
-        # Observation: packing word sequences makes it impossible to reconstruct word
-        # order in FOFE layer -> give list of tensors and original order to model
         return (seq_tensor[perm_idx]) if seq_type == "words" else (seq_tensor, seq_lengths)
 
     def _prepare_sents(self, sents):
@@ -125,7 +199,7 @@ class DataPrep:
         for ndx in range(0, l, self.batch_size):
             yield seq[ndx:min(ndx + self.batch_size, l)]
 
-    def _prepare_data(self, sents):
+    def _prepare_data(self, sents, language):
 
         # Prepare sentences for packing
         id_to_word = {id: word for word, id in self.word_to_id.items()}
@@ -140,10 +214,12 @@ class DataPrep:
 
             # Transforming words into sequences of letters using all ASCII characters and looking up index of character
             # sorted list
-
-            # ! PROBLEM: <PAD> is translated character by character -> change to 0
-            characters = string.printable
+            if language == "eng":
+                characters = string.printable
+            elif language == "de":
+                characters = string.printable + "äöüÄÖÜßéàâçèêôóáëãîÀÂÉÈÊÔÓÁЁÃÎ" + '§'
             VOCAB_CHAR = ['<PAD>'] + sorted(characters)
+            # ! PROBLEM: <PAD> is translated character by character -> change to 0
             vectorized_sents = [[[VOCAB_CHAR.index(
                 tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in sents_strings]
 
@@ -152,29 +228,29 @@ class DataPrep:
             batches.append((input_prep, sent_lengths))
         return batches
 
-    def _to_categorical(self, seq, numclasses):
-        return np.eye(numclasses, dtype='uint8')[seq]
-
     def _prepare_labels(self, labels):
         batches_l = []
         for batch in self._batch(labels):
             padded_labels, padded_labels_lengths = self._prepare_seq_for_padding(
                 batch, "sent")
-            """ binary_labels = []
-            for seq in padded_labels:
-                binary_seq = self._to_categorical(seq, len(self.label_to_id))
-                binary_labels.append(binary_seq) """
             batches_l.append((padded_labels, padded_labels_lengths))
         return batches_l
 
 
 if __name__ == "__main__":
-    prep_data = DataPrep("data.json", 8, "FOFE")
+    #prep_data = DataPrep("Atis.json", 8, "FOFE")
+    #langauge = "eng"
+
+    prep_data = DataPrep("Tiger/", 8, "FOFE")
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing
-
-    VOCAB_CHAR = ['<PAD>'] + sorted(string.printable)
+    language = "de"
+    if language == "eng":
+        characters = string.printable
+    elif language == "de":
+        characters = string.printable + "äöüÄÖÜßéàâçèêôóáëãîÀÂÉÈÊÔÓÁЁÃÎ" + '§'
+    VOCAB_CHAR = ['<PAD>'] + sorted(characters)
 
     def forward(sentences, forgetting_factor):
         sents, lengths = sentences

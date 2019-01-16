@@ -35,13 +35,13 @@ class Classic_GRU(nn.Module):
         packed_output, _ = self.gru(packed_input)
 
         # Reshape *final* output to (batch_size, seqlen, hidden_size)
-        padded = pad_packed_sequence(packed_output, batch_first=True)
+        padded = pad_packed_sequence(
+            packed_output, padding_value=0.0, batch_first=True)
         # print(padded.shape)
         I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
         I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
         out = torch.gather(padded[0], 2, I).squeeze(1)
         out = self.activation(self.linear(out))
+        # resizing for CrossEntropyLoss
         out = out.view(-1, out.size(2), out.size(1))
         return out
-
-# Questions: trained embeddings?
