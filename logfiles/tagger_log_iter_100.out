@@ -1,0 +1,329 @@
+model: FOFE
+data: "Atis.json"
+numepochs: 100
+batchsize: 16
+embeddingsize: 100
+hiddensize: 100
+
+slurmstepd-blau: error: Unable to create TMPDIR [/tmp/user/31667]: Permission denied
+slurmstepd-blau: error: Setting TMPDIR to /tmp
+/home/st/steinberga/.local/lib/python3.6/site-packages/sklearn/metrics/classification.py:1143: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
+  'precision', 'predicted', average, warn_for)
+/home/st/steinberga/.local/lib/python3.6/site-packages/sklearn/metrics/classification.py:1145: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no true samples.
+  'recall', 'true', average, warn_for)
+1547766515.060585
+0
+train loss: 4.612796396615515
+fofe.forgetting_factor tensor([0.1291], device='cuda:0')
+acc 0.07638888888888888
+f1_macro 0.018401390276390275
+f1_micro 0.07638888888888888
+acc 0.12500000000000003
+f1_macro 0.02650027256397449
+f1_micro 0.12500000000000003
+f1_macro 0.0349902528027528
+acc 0.1948529411764706
+f1_macro 0.04834044097436954
+f1_micro 0.1948529411764706
+dev loss 4.459548200879778
+acc 0.1948529411764706
+f1 macro 0.04834044097436954
+f1 micro 0.1948529411764706
+1
+train loss: 4.37993213546324
+fofe.forgetting_factor tensor([0.1989], device='cuda:0')
+2
+train loss: 4.258365855159529
+fofe.forgetting_factor tensor([0.2231], device='cuda:0')
+3
+train loss: 4.1276600207669665
+fofe.forgetting_factor tensor([0.2104], device='cuda:0')
+4
+train loss: 4.019220625061586
+fofe.forgetting_factor tensor([0.2082], device='cuda:0')
+5
+train loss: 3.946945872172773
+fofe.forgetting_factor tensor([0.1933], device='cuda:0')
+6
+train loss: 3.8847211900963843
+fofe.forgetting_factor tensor([0.1920], device='cuda:0')
+7
+train loss: 3.8427835458732513
+fofe.forgetting_factor tensor([0.1961], device='cuda:0')
+8
+train loss: 3.80773282625589
+fofe.forgetting_factor tensor([0.1855], device='cuda:0')
+9
+train loss: 3.7789545825207567
+fofe.forgetting_factor tensor([0.1899], device='cuda:0')
+10
+train loss: 3.7546089107252985
+fofe.forgetting_factor tensor([0.2107], device='cuda:0')
+11
+train loss: 3.7352034691347176
+fofe.forgetting_factor tensor([0.2172], device='cuda:0')
+12
+train loss: 3.72036713672929
+fofe.forgetting_factor tensor([0.2235], device='cuda:0')
+13
+train loss: 3.714148733989302
+fofe.forgetting_factor tensor([0.2374], device='cuda:0')
+14
+train loss: 3.6977155352213296
+fofe.forgetting_factor tensor([0.2441], device='cuda:0')
+15
+train loss: 3.692091155722438
+fofe.forgetting_factor tensor([0.2427], device='cuda:0')
+16
+train loss: 3.683718491749591
+fofe.forgetting_factor tensor([0.2422], device='cuda:0')
+17
+train loss: 3.6808232964282057
+fofe.forgetting_factor tensor([0.2513], device='cuda:0')
+18
+train loss: 3.6733696307523185
+fofe.forgetting_factor tensor([0.2532], device='cuda:0')
+19
+train loss: 3.6717170749802186
+fofe.forgetting_factor tensor([0.2668], device='cuda:0')
+20
+train loss: 3.6740417604944313
+fofe.forgetting_factor tensor([0.2682], device='cuda:0')
+21
+train loss: 3.6652612647857055
+fofe.forgetting_factor tensor([0.2627], device='cuda:0')
+22
+train loss: 3.6590953036005716
+fofe.forgetting_factor tensor([0.2804], device='cuda:0')
+23
+train loss: 3.6687325684421035
+fofe.forgetting_factor tensor([0.2856], device='cuda:0')
+24
+train loss: 3.6581267592418625
+fofe.forgetting_factor tensor([0.2972], device='cuda:0')
+25
+train loss: 3.660335528323928
+fofe.forgetting_factor tensor([0.3075], device='cuda:0')
+26
+train loss: 3.661340995007251
+fofe.forgetting_factor tensor([0.3053], device='cuda:0')
+27
+train loss: 3.656755071088492
+fofe.forgetting_factor tensor([0.3155], device='cuda:0')
+28
+train loss: 3.653147672553618
+fofe.forgetting_factor tensor([0.3205], device='cuda:0')
+29
+train loss: 3.654454099126609
+fofe.forgetting_factor tensor([0.3208], device='cuda:0')
+30
+train loss: 3.652069470011087
+fofe.forgetting_factor tensor([0.3209], device='cuda:0')
+31
+train loss: 3.6410867784875465
+fofe.forgetting_factor tensor([0.3330], device='cuda:0')
+32
+train loss: 3.6517895034039354
+fofe.forgetting_factor tensor([0.3360], device='cuda:0')
+33
+train loss: 3.646654369361908
+fofe.forgetting_factor tensor([0.3423], device='cuda:0')
+34
+train loss: 3.6458082524648154
+fofe.forgetting_factor tensor([0.3448], device='cuda:0')
+35
+train loss: 3.6611510213599145
+fofe.forgetting_factor tensor([0.3366], device='cuda:0')
+36
+train loss: 3.6455767796221505
+fofe.forgetting_factor tensor([0.3309], device='cuda:0')
+37
+train loss: 3.6388888177144
+fofe.forgetting_factor tensor([0.3409], device='cuda:0')
+38
+train loss: 3.6435160368800643
+fofe.forgetting_factor tensor([0.3417], device='cuda:0')
+39
+train loss: 3.6484469716328696
+fofe.forgetting_factor tensor([0.3539], device='cuda:0')
+40
+train loss: 3.638756690733883
+fofe.forgetting_factor tensor([0.3460], device='cuda:0')
+41
+train loss: 3.6382411704005966
+fofe.forgetting_factor tensor([0.3410], device='cuda:0')
+42
+train loss: 3.636954460756846
+fofe.forgetting_factor tensor([0.3449], device='cuda:0')
+43
+train loss: 3.6409790276523575
+fofe.forgetting_factor tensor([0.3586], device='cuda:0')
+44
+train loss: 3.639460285025907
+fofe.forgetting_factor tensor([0.3763], device='cuda:0')
+45
+train loss: 3.6410032429369577
+fofe.forgetting_factor tensor([0.3730], device='cuda:0')
+46
+train loss: 3.637560489187279
+fofe.forgetting_factor tensor([0.3740], device='cuda:0')
+47
+train loss: 3.6359530921920715
+fofe.forgetting_factor tensor([0.3683], device='cuda:0')
+48
+train loss: 3.636930628473979
+fofe.forgetting_factor tensor([0.3757], device='cuda:0')
+49
+train loss: 3.63639828287454
+fofe.forgetting_factor tensor([0.3843], device='cuda:0')
+50
+train loss: 3.631822750750316
+fofe.forgetting_factor tensor([0.3945], device='cuda:0')
+51
+train loss: 3.6365348574626877
+fofe.forgetting_factor tensor([0.3878], device='cuda:0')
+52
+train loss: 3.6404696784345023
+fofe.forgetting_factor tensor([0.3951], device='cuda:0')
+53
+train loss: 3.6379296741332396
+fofe.forgetting_factor tensor([0.3991], device='cuda:0')
+54
+train loss: 3.636015592329952
+fofe.forgetting_factor tensor([0.3898], device='cuda:0')
+55
+train loss: 3.6318945377227294
+fofe.forgetting_factor tensor([0.3929], device='cuda:0')
+56
+train loss: 3.6333442787568733
+fofe.forgetting_factor tensor([0.3950], device='cuda:0')
+57
+train loss: 3.631826355754132
+fofe.forgetting_factor tensor([0.4084], device='cuda:0')
+58
+train loss: 3.6271552139496706
+fofe.forgetting_factor tensor([0.4095], device='cuda:0')
+59
+train loss: 3.6278245171389907
+fofe.forgetting_factor tensor([0.4089], device='cuda:0')
+60
+train loss: 3.633077624332474
+fofe.forgetting_factor tensor([0.4095], device='cuda:0')
+61
+train loss: 3.6290210078519034
+fofe.forgetting_factor tensor([0.4120], device='cuda:0')
+62
+train loss: 3.6244079109176575
+fofe.forgetting_factor tensor([0.4135], device='cuda:0')
+63
+train loss: 3.627056447377645
+fofe.forgetting_factor tensor([0.4178], device='cuda:0')
+64
+train loss: 3.6259869217393867
+fofe.forgetting_factor tensor([0.4216], device='cuda:0')
+65
+train loss: 3.6245766969090965
+fofe.forgetting_factor tensor([0.4207], device='cuda:0')
+66
+train loss: 3.628657647404805
+fofe.forgetting_factor tensor([0.4300], device='cuda:0')
+67
+train loss: 3.627925966638159
+fofe.forgetting_factor tensor([0.4346], device='cuda:0')
+68
+train loss: 3.631732928226272
+fofe.forgetting_factor tensor([0.4288], device='cuda:0')
+69
+train loss: 3.628582198935819
+fofe.forgetting_factor tensor([0.4314], device='cuda:0')
+70
+train loss: 3.624613620191214
+fofe.forgetting_factor tensor([0.4320], device='cuda:0')
+71
+train loss: 3.6265339094950972
+fofe.forgetting_factor tensor([0.4367], device='cuda:0')
+72
+train loss: 3.6261871148304765
+fofe.forgetting_factor tensor([0.4490], device='cuda:0')
+73
+train loss: 3.6278448727236214
+fofe.forgetting_factor tensor([0.4537], device='cuda:0')
+74
+train loss: 3.6253307880646735
+fofe.forgetting_factor tensor([0.4474], device='cuda:0')
+75
+train loss: 3.6284811333958884
+fofe.forgetting_factor tensor([0.4544], device='cuda:0')
+76
+train loss: 3.626850242116844
+fofe.forgetting_factor tensor([0.4475], device='cuda:0')
+77
+train loss: 3.6318949025318803
+fofe.forgetting_factor tensor([0.4499], device='cuda:0')
+78
+train loss: 3.62852861412079
+fofe.forgetting_factor tensor([0.4525], device='cuda:0')
+79
+train loss: 3.626614110058091
+fofe.forgetting_factor tensor([0.4532], device='cuda:0')
+80
+train loss: 3.6267633476410523
+fofe.forgetting_factor tensor([0.4411], device='cuda:0')
+81
+train loss: 3.622025553959919
+fofe.forgetting_factor tensor([0.4490], device='cuda:0')
+82
+train loss: 3.62699120207484
+fofe.forgetting_factor tensor([0.4598], device='cuda:0')
+83
+train loss: 3.627665739940352
+fofe.forgetting_factor tensor([0.4621], device='cuda:0')
+84
+train loss: 3.627342560205115
+fofe.forgetting_factor tensor([0.4749], device='cuda:0')
+85
+train loss: 3.63146012662405
+fofe.forgetting_factor tensor([0.4815], device='cuda:0')
+86
+train loss: 3.623650081665162
+fofe.forgetting_factor tensor([0.4954], device='cuda:0')
+87
+train loss: 3.6190243217361022
+fofe.forgetting_factor tensor([0.5019], device='cuda:0')
+88
+train loss: 3.6233219564200407
+fofe.forgetting_factor tensor([0.4988], device='cuda:0')
+89
+train loss: 3.631151216575898
+fofe.forgetting_factor tensor([0.5029], device='cuda:0')
+90
+train loss: 3.626616513393969
+fofe.forgetting_factor tensor([0.5065], device='cuda:0')
+91
+train loss: 3.621650374079325
+fofe.forgetting_factor tensor([0.5041], device='cuda:0')
+92
+train loss: 3.6315810756989753
+fofe.forgetting_factor tensor([0.5040], device='cuda:0')
+93
+train loss: 3.629597367053051
+fofe.forgetting_factor tensor([0.4995], device='cuda:0')
+94
+train loss: 3.6248358483295364
+fofe.forgetting_factor tensor([0.4980], device='cuda:0')
+95
+train loss: 3.624960258782628
+fofe.forgetting_factor tensor([0.4982], device='cuda:0')
+96
+train loss: 3.626002111588137
+fofe.forgetting_factor tensor([0.4939], device='cuda:0')
+97
+train loss: 3.621383775190177
+fofe.forgetting_factor tensor([0.4910], device='cuda:0')
+98
+train loss: 3.620054855882882
+fofe.forgetting_factor tensor([0.4886], device='cuda:0')
+99
+train loss: 3.6234087388678247
+fofe.forgetting_factor tensor([0.4917], device='cuda:0')
+4938.79553771019
