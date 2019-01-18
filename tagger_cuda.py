@@ -28,7 +28,8 @@ class Tagger:
         print("-------------------------------------------------------------------------")
         print("Model parameters: \n number of epochs:", args.num_epochs, "\n batch size:", args.batch_size, " \n embedding size:",
               args.embedding_size, "\n hidden size:", args.hidden_size, "\n learning rate:", args.learn_rate, "\n regularisation factor:", args.reg_factor)
-        vocab_char_size = len(['<PAD>'] + sorted(string.printable))
+        characters = string.printable + "äöüÄÖÜßéàâçèêôóáëãîÀÂÉÈÊÔÓÁЁÃÎ" + '§'
+        vocab_char_size = len(['<PAD>'] + sorted(characters))
 
         self.data = DataPrep(args.datafile, args.batch_size, args.modelname)
         numlabels = len(self.data.label_to_id)
