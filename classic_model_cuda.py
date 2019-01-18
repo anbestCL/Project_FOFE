@@ -28,6 +28,9 @@ class Classic_GRU(nn.Module):
 
     def forward(self, x):
         x, lengths = x
+        if torch.cuda.is_available():
+            x = x.cuda()
+            lengths = lengths.cuda()
         x = self.dropout(self.embedding(x))
         # packed sequences only supported by rnn layers, so pack before rnn layer and unpack afterwards
         packed_input = pack_padded_sequence(

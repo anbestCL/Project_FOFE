@@ -22,6 +22,12 @@ import argparse
 class Tagger:
 
     def __init__(self, args):
+        print("-------------------------------------------------------------------------")
+        print("Training BIOS tagger on", args.datafile,
+              "data set using", args.modelname, "model")
+        print("-------------------------------------------------------------------------")
+        print("Model parameters: \n number of epochs:", args.num_epochs, "\n batch size:", args.batch_size, " \n embedding size:",
+              args.embedding_size, "\n hidden size:", args.hidden_size, "\n learning rate:", args.learn_rate, "\n regularisation factor:", args.reg_factor)
         vocab_char_size = len(['<PAD>'] + sorted(string.printable))
 
         self.data = DataPrep(args.datafile, args.batch_size, args.modelname)
@@ -34,11 +40,10 @@ class Tagger:
     def print(self, model):
         for name, param in model.named_parameters():
             if name == "fofe.forgetting_factor":
-                print(name, param.data)
+                print("\t", name, "\t", param.data)
 
     def train(self, modelname, vocab_size, vocab_char_size, embedding_size, hidden_size, num_epochs, num_labels, learn_rate, reg_factor):
         begin = time.time()
-        print(begin)
         if modelname == "FOFE":
             model = FOFE_GRU(vocab_char_size, hidden_size, num_labels)
         elif modelname == "Classic":
@@ -55,7 +60,9 @@ class Tagger:
         best_f1_micro = 0
         best_loss = 10
         for epoch in range(num_epochs):
-            print(epoch)
+            print(
+                "-------------------------------------------------------------------------")
+            print("epoch:", epoch)
             loss_accum = 0.0
             for batch, (labels, lengths) in zip(self.data.train_input, self.data.train_labels):
                 if torch.cuda.is_available():
@@ -66,9 +73,9 @@ class Tagger:
                 loss_accum += loss.data.item()
                 loss.backward()
                 optimizer.step()    # Does the update
-            print("train loss:", loss_accum/len(self.data.train_input))
-            self.print(model)
+            print("\t train loss: \t", loss_accum/len(self.data.train_input))
             if epoch % 100 == 0:
+                self.print(model)
                 dev_loss_accum = 0.0
                 for batch, (labels, lengths) in zip(self.data.dev_input, self.data.dev_labels):
                     if torch.cuda.is_available():
@@ -79,20 +86,18 @@ class Tagger:
                     acc, f1_macro, f1_micro = self.eval(output_dev, labels)
                     if acc > best_acc:
                         best_acc = acc
-                        print("acc", best_acc)
                     if f1_macro > best_f1_macro:
                         best_f1_macro = f1_macro
-                        print("f1_macro", best_f1_macro)
                     if f1_micro > best_f1_micro:
                         best_f1_micro = f1_micro
-                        print("f1_micro", best_f1_micro)
 
-                print("dev loss", dev_loss_accum/len(self.data.dev_input))
-                print("acc", best_acc)
-                print("f1 macro", best_f1_macro)
-                print("f1 micro", best_f1_micro)
-        end = time.time() - begin
-        print(end)
+                print("\t dev loss \t", dev_loss_accum/len(self.data.dev_input))
+                print("\t acc \t", best_acc)
+                print("\t f1 macro \t", best_f1_macro)
+                print("\t f1 micro \t", best_f1_micro)
+        end = (time.time() - begin)/3600
+        print("-------------------------------------------------------------------------")
+        print("Training lasted for", end, "hours")
 
     def eval(self, output, act_labels):
         _, pred_labels = output.max(dim=1)
@@ -105,12 +110,17 @@ class Tagger:
         acc = sum(comp)/len(act_labels)
 
         # calculating f1-score
+        # ignore Pad token in act_vals:
+        def ignore_0(l):
+            lab = np.unique(l)
+            index = [0]
+            lab = np.delete(lab, index)
         f1_macro = [f1_score(
-            list(act_vals), list(pred_vals), average='macro') for act_vals, pred_vals in zip(act_labels, pred_labels)]
+            act_vals, pred_vals, average='macro', labels=ignore_0(act_vals)) for act_vals, pred_vals in zip(act_labels, pred_labels)]
         f1_macro = sum(f1_macro)/len(f1_macro)
 
         f1_micro = [f1_score(
-            act_vals, pred_vals, average='micro') for act_vals, pred_vals in zip(act_labels, pred_labels)]
+            act_vals, pred_vals, average='micro', labels=ignore_0(act_vals)) for act_vals, pred_vals in zip(act_labels, pred_labels)]
         f1_micro = sum(f1_micro)/len(f1_micro)
 
         return acc, f1_macro, f1_micro
