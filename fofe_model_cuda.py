@@ -15,7 +15,7 @@ class FOFE_Encoding(nn.Module):
         super(FOFE_Encoding, self).__init__()
         self.vocab_size = vocab_size
         self.forgetting_factor = nn.Parameter(
-            torch.zeros(1), requires_grad=True)
+            torch.tensor(0.5), requires_grad=True)
 
     def forward(self, input):
         sents, lengths = input
@@ -40,7 +40,6 @@ class FOFE_Encoding(nn.Module):
                         z = self.forgetting_factor*z + V[k]
                 sent_encoded[j] = z
             samples_encoded[i] = sent_encoded
-
         return (samples_encoded, lengths)
 
 
@@ -80,3 +79,49 @@ class FOFE_GRU(nn.Module):
             out = self.linear(out)
         out = out.view(-1, out.size(2), out.size(1))
         return out
+
+if __name__=="__main__":
+    # first sentence in train data
+    # [232 542 502 196 208  77  62  10  35  40  58 234 137  62  11 234 481 321]
+    # after character transformation
+    sent = torch.tensor([[  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,  79,  84],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,  93,  71,  84,  90],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,  79],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,  90,  78,  75],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,  71,  83],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,  72,  85,  89,  90,  85,  84],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,  74,  75,  84,  92,  75,  88],
+        [  0,   0,   0,   0,   0,  42,  47,  45,  47,  58,  42,  47,
+          45,  47,  58,  42,  47,  45,  47,  58],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,  71,  88,  88,  79,  92,  75],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,  71,  84,  74],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,  90,  85],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,  71,  90],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,  76,  82,  95],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,  71,  90],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,  79,  84],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,  76,  88,  85,  83],
+        [  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+           0,  83,  85,  88,  84,  79,  84,  77],
+        [ 42,  47,  45,  47,  58,  42,  47,  45,  47,  58,  42,  47,
+          45,  47,  58,  42,  47,  45,  47,  58]])
+    lengths = torch.tensor([18])
+    test_tensor = ([sent], [lengths])
+
+    test_model = FOFE_GRU(100, 100, 128)
+    output = test_model.forward(test_tensor)

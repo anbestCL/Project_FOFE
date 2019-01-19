@@ -118,11 +118,11 @@ class Tagger:
             lab = np.delete(lab, index)
         f1_macro = [f1_score(
             act_vals, pred_vals, average='macro', labels=ignore_0(act_vals)) for act_vals, pred_vals in zip(act_labels, pred_labels)]
-        f1_macro = sum(f1_macro)/len(f1_macro)
+        f1_macro = (sum(f1_macro)/len(f1_macro)).item()
 
         f1_micro = [f1_score(
             act_vals, pred_vals, average='micro', labels=ignore_0(act_vals)) for act_vals, pred_vals in zip(act_labels, pred_labels)]
-        f1_micro = sum(f1_micro)/len(f1_micro)
+        f1_micro = (sum(f1_micro)/len(f1_micro)).item()
 
         return acc, f1_macro, f1_micro
 
@@ -143,7 +143,7 @@ parser.add_argument('--num_epochs', type=int, default=1000,
                     help='number of epochs used for training')
 parser.add_argument('--learn_rate', type=float,
                     default=0.001, help='learning rate for model')
-parser.add_argument('--reg_factor', type=float, default=0.001,
+parser.add_argument('--reg_factor', type=float, default=0.0,
                     help='weight decay factor of model')
 
 args = parser.parse_args()
