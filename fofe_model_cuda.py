@@ -17,8 +17,8 @@ class FOFE_Encoding(nn.Module):
         self.forgetting_factor = nn.Parameter(
             torch.tensor(0.5), requires_grad=True)
 
-    def forward(self, input):
-        sents, lengths = input
+    def forward(self, x):
+        sents, lengths = x
         samples_encoded = torch.zeros(
             (len(sents), len(sents[0]), self.vocab_size))
         if torch.cuda.is_available():
@@ -44,13 +44,13 @@ class FOFE_Encoding(nn.Module):
 
 
 class FOFE_GRU(nn.Module):
-    def __init__(self, vocabsize, hiddensize, numlabels):
+    def __init__(self, vocabsize, hiddensize, dropoutrate, numlabels):
         super(FOFE_GRU, self).__init__()
         self.hidden_size = hiddensize
 
         self.fofe = FOFE_Encoding(vocab_size=vocabsize)
 
-        self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=dropoutrate)
 
         self.gru = nn.GRU(input_size=vocabsize, hidden_size=self.hidden_size,
                           bidirectional=True, batch_first=True)
@@ -121,7 +121,7 @@ if __name__=="__main__":
         [ 42,  47,  45,  47,  58,  42,  47,  45,  47,  58,  42,  47,
           45,  47,  58,  42,  47,  45,  47,  58]])
     lengths = torch.tensor([18])
-    test_tensor = ([sent], [lengths])
+    test_tensor = ([sent], lengths)
 
-    test_model = FOFE_GRU(100, 100, 128)
+    test_model = FOFE_GRU(100, 100, 0.5, 128)
     output = test_model.forward(test_tensor)

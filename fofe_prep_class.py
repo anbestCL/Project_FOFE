@@ -35,7 +35,6 @@ class DataPrep:
     def _init_atis(self, datafile, batchsize, modelname):
         with open(datafile, "r") as f:
             data = json.load(f)
-
         self._read_Atis_data(data)
         self._reorganize_Atis_data()
         if modelname == "FOFE":
@@ -218,9 +217,9 @@ class DataPrep:
                 characters = string.printable
             elif language == "de":
                 characters = string.printable + "äöüÄÖÜßéàâçèêôóáëãîÀÂÉÈÊÔÓÁЁÃÎ" + '§'
-            VOCAB_CHAR = ['<PAD>'] + sorted(characters)
+            self.vocab_char = ['<PAD>'] + sorted(characters)
             # ! PROBLEM: <PAD> is translated character by character -> change to 0
-            vectorized_sents = [[[VOCAB_CHAR.index(
+            vectorized_sents = [[[self.vocab_char.index(
                 tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent] for sent in sents_strings]
 
             # Prepare words for packing
@@ -241,7 +240,7 @@ if __name__ == "__main__":
     #prep_data = DataPrep("Atis.json", 8, "FOFE")
     #langauge = "eng"
 
-    prep_data = DataPrep("Tiger/", 8, "FOFE")
+    prep_data = DataPrep("Atis.json", 8, "FOFE")
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing

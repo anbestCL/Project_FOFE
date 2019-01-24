@@ -3,11 +3,11 @@
 batch_size=20
 embedding_size=100
 hidden_size=200
-num_epochs=500
+num_epochs={0..501..50}
 learn_rate=0.01
 reg_factor=0.01
 
-python3.6 -m cProfile -o tagger.cprof tagger_cuda.py FOFE Atis.json \
+./tagger_cuda.py FOFE Atis.json \
 --batch_size=$batch_size \
 --embedding_size=$embedding_size \
 --hidden_size=$hidden_size \

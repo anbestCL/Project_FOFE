@@ -11,13 +11,13 @@ from fofe_prep_class import DataPrep
 
 
 class Classic_GRU(nn.Module):
-    def __init__(self, vocabsize, embeddingsize, hiddensize, numlabels):
+    def __init__(self, vocabsize, embeddingsize, hiddensize, dropoutrate, numlabels):
         super(Classic_GRU, self).__init__()
         self.hidden_size = hiddensize
 
         self.embedding = nn.Embedding(
             num_embeddings=vocabsize, embedding_dim=embeddingsize)
-        self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=dropoutrate)
 
         self.gru = nn.GRU(input_size=embeddingsize, hidden_size=self.hidden_size,
                           bidirectional=True, batch_first=True)
