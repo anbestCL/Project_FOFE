@@ -24,7 +24,6 @@ class Classic_GRU(nn.Module):
 
         self.linear = nn.Linear(
             in_features=self.hidden_size, out_features=numlabels)
-        self.activation = nn.Softmax(dim=1)
 
     def forward(self, x):
         x, lengths = x

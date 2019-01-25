@@ -61,7 +61,9 @@ class Tagger:
         optimizer = optim.Adam(model.parameters(),
                                lr=config['learn_rate'], weight_decay=config['reg_factor'])
         best_metrics = defaultdict(float)
+        best_metrics['train_loss'] = 10
         metrics = defaultdict()
+        early = 0
         for epoch in range(num_epochs[-1]+1):
             print(
                 "-------------------------------------------------------------------------")
@@ -80,7 +82,12 @@ class Tagger:
                 loss_accum += loss.data.item()
                 loss.backward()
                 optimizer.step()    # Does the update
-            train_loss = loss_accum/len(self.data.train_input[:5000])
+            train_loss = loss_accum/len(self.data.train_input)
+            if train_loss < best_metrics['train_loss']:
+                best_metrics['train_loss'] = train_loss
+            if early <= 10 and train_loss < best_metrics['train_loss']:
+                early += 1
+
             print("\t train loss: \t", train_loss)
             if epoch in num_epochs:
                 self._print(model)
@@ -94,7 +101,7 @@ class Tagger:
                 metrics[epoch] = (cur_model, train_loss, dev_loss,
                                   test_loss, acc, f1_macro, f1_weighted)
 
-        with open("metrics_atis_classic.txt", "wb") as metric_f:
+        with open("metrics.txt", "wb") as metric_f:
             pickle.dump(metrics, metric_f)
         end = (time.time() - begin)/3600
         print("-------------------------------------------------------------------------")
@@ -120,7 +127,7 @@ class Tagger:
             pred_labels = np.append(
                 pred_labels, preds.data.cpu().numpy().flatten())
 
-        loss = loss_accum/len(sents)
+        loss = loss_accum/len(self.data.dev_input)
 
         if type == "dev":
             acc, f1_macro, f1_weighted = self.calc_metric(
@@ -132,7 +139,7 @@ class Tagger:
             if acc > best_metrics['acc']:
                 best_metrics['acc'] = acc
                 best_model = copy.deepcopy(model.cpu())
-                torch.save(best_model, "params_atis_classic.nnp")
+                torch.save(best_model, "params.nnp")
                 if torch.cuda.is_available():
                     model = model.cuda()
 
@@ -216,5 +223,5 @@ if __name__ == '__main__':
     test_sents_l = torch.tensor(np.array([test_sents_l]))
     test_labels = tagger.data.test_labels[0][0][0]
 
-    #tagger.predict("params_fofe.nnp", test_sent,
-                   #([test_sents_char], test_sents_l), #test_labels)
+    tagger.predict("params_fofe.nnp", test_sent,
+                   ([test_sents_char], test_sents_l), test_labels)
