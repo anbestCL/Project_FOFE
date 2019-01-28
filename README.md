@@ -1,5 +1,5 @@
 # FOFE Character Encoding
---
+
 ## Structure of project
 
 This project's first aim is to implement a neural layer in Pytorch which performs the FOFE character encoding described in [Zhang et al. (2015)](http://www.aclweb.org/anthology/P15-2081) to embed to the words. This layer is then passed to a bidirectional GRU architecture.
