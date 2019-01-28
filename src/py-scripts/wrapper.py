@@ -3,13 +3,26 @@ from tagger_cuda import Tagger
 
 class Wrapper:
 
+    """Wrapper for model to pass to hyper optimisation
+
+    Arguments:
+        modelname {string} - either "FOFE" for Fofe character encoding or "Classic" for classic trainable embedding layer
+        datafile {string} - path to data
+        batch_size {number} - size of training batches
+
+    Returns:
+        dictionary -- maps each evaluation epoch to tuple of model, train_loss, dev_loss, test_loss,
+                        accuracy, macro and weighted F1 score
+                        hyper optimisation script chooses best config based on this dictionary
+    """
+
     def __init__(self, modelname, datafile, batch_size):
         self.modelname = modelname
         self.datafile = datafile
         self.batchsize = batch_size
 
-    # config_dict={param: value_choice, ....}
     def learn(self, num_epochs, config_dict, seed):
+        # config_dict contains a chosen value for each parameter
         model = Tagger(self.modelname, self.datafile,
                        num_epochs, self.batchsize, **config_dict)
         # train

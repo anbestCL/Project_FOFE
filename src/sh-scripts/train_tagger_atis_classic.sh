@@ -1,13 +1,13 @@
 #!/bin/bash
 
 batch_size=20
-embedding_size=100
-hidden_size=200
+embedding_size=200
+hidden_size=300
 num_epochs=($(seq 0 50 550))
-learn_rate=0.001
+learn_rate=0.01
 reg_factor=0.0
 
-./tagger_cuda.py FOFE Atis.json \
+../py-scripts/tagger.py Classic ../../data/Atis.json \
 --batch_size=$batch_size \
 --embedding_size=$embedding_size \
 --hidden_size=$hidden_size \

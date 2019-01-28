@@ -7,10 +7,23 @@ import numpy as np
 import string
 import math
 import json
-from fofe_prep_class import DataPrep
+from prep import DataPrep
 
 
 class Classic_GRU(nn.Module):
+
+    """Model that uses randomly initialised word embeddings to train a bidirectional GRU
+    Arguments:
+        vocabsize {int} - number of distinct words in data
+        embeddingsize {int} - size of word embeddings
+        hiddensize {int} - size of hidden layers of GRU
+        dropout rate {float} - rate of dropout layer
+        numlabels {int} - number of distinct tags in data 
+
+    Returns:
+        output tensor -- output of neural network of size (batch_size, padded sequence length, number of labels)
+    """
+
     def __init__(self, vocabsize, embeddingsize, hiddensize, dropoutrate, numlabels):
         super(Classic_GRU, self).__init__()
         self.hidden_size = hiddensize
@@ -23,7 +36,7 @@ class Classic_GRU(nn.Module):
                           bidirectional=True, batch_first=True)
 
         self.linear = nn.Linear(
-            in_features=self.hidden_size, out_features=numlabels)
+            in_features=2*self.hidden_size, out_features=numlabels)
 
     def forward(self, x):
         x, lengths = x
@@ -36,17 +49,13 @@ class Classic_GRU(nn.Module):
             x, lengths.cpu().numpy(), batch_first=True)
         packed_output, _ = self.gru(packed_input)
 
-        # Reshape *final* output to (batch_size, seqlen, hidden_size)
-        padded = pad_packed_sequence(
+        # unpack output of GRU
+        padded, _ = pad_packed_sequence(
             packed_output, padding_value=0.0, batch_first=True)
-        # print(padded.shape)
-        I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
-        I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
-        out = torch.gather(padded[0].cpu(), 2, I).squeeze(1)
         if torch.cuda.is_available():
-            out = self.linear(out.cuda())
+            out = self.linear(padded.cuda())
         else:
-            out = self.linear(out)
+            out = self.linear(padded)
         # resizing for CrossEntropyLoss
         out = out.view(-1, out.size(2), out.size(1))
         return out

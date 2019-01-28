@@ -154,7 +154,7 @@ params = {'num_epochs': args.num_epochs, 'embedding_size': [50, 100, 200], 'hidd
 
 best_model, best_config, associated_test_cost = random_search(
     learner, params, seed=0, attempts_per_param=2)
-torch.save(best_model, "hyper_best_model_classic.nnp")
-with open("hyper_best_config_classic.txt", "wb"):
-    pickle.dump(best_config)
-    pickle.dump(associated_test_cost)
+torch.save(best_model, "hyper_best_model_fofe.nnp")
+with open("hyper_best_config_fofe.txt", "wb") as hyper:
+    pickle.dump(best_config, hyper)
+    pickle.dump(associated_test_cost, hyper)

@@ -7,10 +7,22 @@ import numpy as np
 import string
 import math
 import json
-from fofe_prep_class import DataPrep
+from prep import DataPrep
 
 
 class FOFE_Encoding(nn.Module):
+
+    """FOFE character encoding layer which loops through the sentences, words and characters and
+    transforms every character into a one-hot vector scaled by a forgetting factor to the power 
+    corresponding to the position of the character within the word starting from back of word
+    Arguments:
+        vocab_size -- number of distinct characters
+    
+    Returns:
+        tuple of tensors -- sentences with encoded words and corresponding sentence lengths
+                            needed for packing for GRU
+    """
+
     def __init__(self, vocab_size):
         super(FOFE_Encoding, self).__init__()
         self.vocab_size = vocab_size
@@ -44,6 +56,16 @@ class FOFE_Encoding(nn.Module):
 
 
 class FOFE_GRU(nn.Module):
+
+    """Model that uses FOFE character encodings to train a bidirectional GRU 
+    Arguments:
+        vocabsize {int} - number of distince characters
+        hiddensize {int} - size of hidden layers of GRU
+        dropout rate {float} - rate of dropout layer
+        numlabels {int} - number of distinct tags in data 
+    Returns:
+        output tensor -- size (batch_size, padded sequence length, number of labels)
+    """
     def __init__(self, vocabsize, hiddensize, dropoutrate, numlabels):
         super(FOFE_GRU, self).__init__()
         self.hidden_size = hiddensize
@@ -56,7 +78,7 @@ class FOFE_GRU(nn.Module):
                           bidirectional=True, batch_first=True)
 
         self.linear = nn.Linear(
-            in_features=self.hidden_size, out_features=numlabels)
+            in_features=2*self.hidden_size, out_features=numlabels)
 
     def forward(self, x):
         x, lengths = self.fofe(x)
@@ -66,17 +88,14 @@ class FOFE_GRU(nn.Module):
             x, lengths.cpu().numpy(), batch_first=True)
         packed_output, _ = self.gru(packed_input)
 
-        # Reshape *final* output to (batch_size, seqlen, hidden_size)
-        # add padding_value to ignore padded elements in next layers
-        padded = pad_packed_sequence(
+        #unpack output
+        padded,_ = pad_packed_sequence(
             packed_output, padding_value=0.0, batch_first=True)
-        I = torch.LongTensor(lengths.cpu().numpy()).view(-1, 1, 1)
-        I = Variable(I.expand(x.size(0), x.size(1), self.hidden_size)-1)
-        out = torch.gather(padded[0].cpu(), 2, I).squeeze(1)
+
         if torch.cuda.is_available():
-            out = self.linear(out.cuda())
+            out = self.linear(padded.cuda())
         else:
-            out = self.linear(out)
+            out = self.linear(padded)
         out = out.view(-1, out.size(2), out.size(1))
         return out
 

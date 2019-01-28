@@ -14,6 +14,19 @@ from os import walk
 
 class DataPrep:
 
+    """Class that prepares data for training by padding the sequences and dividing them into batches.
+    It has two separate init functions depending on the data set given (Atis or Tiger)
+    Comment: For Tiger it stores only 5000 batches for training, 1000 for development and 200 for test
+
+    Arguments:
+        datafile {string} - path to data
+        batch_size {number} - size of training batches
+        modelname {string} - either "FOFE" for Fofe character encoding or "Classic" for classic trainable embedding layer
+
+    Returns:
+        None -- prepared sentences and labels stored as class variables
+    """
+
     def __init__(self, datafile, batchsize, modelname):
         self.batch_size = batchsize
         self.train_sents = []
@@ -25,18 +38,20 @@ class DataPrep:
         self.test_labels = []
 
         # format data depending on corpus
-        if datafile.startswith("Atis"):
+        if datafile.endswith(".json"):
             self._init_atis(datafile, batchsize, modelname)
-        elif datafile.startswith("Tiger"):
+        elif datafile.endswith("Tiger/"):
             self._init_tiger(datafile, batchsize, modelname)
 
-    # Following functions are specific for the transforming of the Atis dataset
-
+    # Following functions are specific for the transformation of the Atis dataset
     def _init_atis(self, datafile, batchsize, modelname):
         with open(datafile, "r") as f:
             data = json.load(f)
         self._read_Atis_data(data)
         self._reorganize_Atis_data()
+
+        # for the fofe encoding we need to pass the language to get
+        # the correct character vocabulary
         if modelname == "FOFE":
             self.train_input = self._prepare_data(self.train_sents, "eng")
             self.dev_input = self._prepare_data(self.dev_sents, "eng")
@@ -57,8 +72,8 @@ class DataPrep:
         self.test_labels = data["test_labels"]
 
         # we also want to create a dev set by splitting the training data
-        train_dev_sents = data["train_sents"]  # list of lists
-        train_dev_labels = data["train_labels"]  # list of lists
+        train_dev_sents = data["train_sents"]
+        train_dev_labels = data["train_labels"]
         num_train = math.floor(0.8 * len(train_dev_sents))
 
         self.train_sents = train_dev_sents[:num_train]
@@ -75,7 +90,7 @@ class DataPrep:
         return [[label+1 for label in sents] for sents in labels]
 
     def _reorganize_Atis_data(self):
-
+        # Atis sentences are already indexed
         new_word_id = self.word_to_id["<PAD>"]
         word = [key for key, value in self.word_to_id.items() if value ==
                 0]  # "'d"
@@ -117,17 +132,21 @@ class DataPrep:
                             f, self.test_sents, self.test_labels)
 
         self._reorganize_Tiger_data()
+
+        # since Tiger data set is very large use only 1000 batches for training,
+        # 1000 for development and 200 for testing
         if modelname == "FOFE":
-            self.train_input = self._prepare_data(self.train_sents, "de")
-            self.dev_input = self._prepare_data(self.dev_sents, "de")
-            self.test_input = self._prepare_data(self.test_sents, "de")
+            self.train_input = self._prepare_data(
+                self.train_sents, "de")[:5000]
+            self.dev_input = self._prepare_data(self.dev_sents, "de")[:1000]
+            self.test_input = self._prepare_data(self.test_sents, "de")[:200]
         elif modelname == "Classic":
-            self.train_input = self._prepare_labels(self.train_sents)
-            self.dev_input = self._prepare_labels(self.dev_sents)
-            self.test_input = self._prepare_labels(self.test_sents)
-        self.train_labels = self._prepare_labels(self.train_labels)
-        self.dev_labels = self._prepare_labels(self.dev_labels)
-        self.test_labels = self._prepare_labels(self.test_labels)
+            self.train_input = self._prepare_labels(self.train_sents)[:5000]
+            self.dev_input = self._prepare_labels(self.dev_sents)[:1000]
+            self.test_input = self._prepare_labels(self.test_sents)[:200]
+        self.train_labels = self._prepare_labels(self.train_labels)[:5000]
+        self.dev_labels = self._prepare_labels(self.dev_labels)[:1000]
+        self.test_labels = self._prepare_labels(self.test_labels)[:200]
 
     def _read_Tiger_data(self, file, sentences, labels):
 
@@ -153,6 +172,7 @@ class DataPrep:
         self.label_to_id = {label: i+1 for i, label in enumerate(self.tagset)}
         self.label_to_id["<PAD>"] = 0
 
+        # Tiger sentences and labels are strings, need to transform to indexes
         self.train_sents = [[self.word_to_id[word]
                              for word in sent] for sent in self.train_sents]
         self.dev_sents = [[self.word_to_id[word]
@@ -170,11 +190,16 @@ class DataPrep:
     # Following functions prepare data (both Atis and Tiger) to give as input to model
 
     def _prepare_seq_for_padding(self, sequence, seq_type):
+
+        # padding steps to make packing of batches using Pytorch function
+        # pack_padded_sequence possible
+
         seq_lengths = LongTensor(list(map(len, sequence)))
         seq_tensor = Variable(torch.zeros(
             (len(sequence), seq_lengths.max()))).long()
         for idx, (seq, seqlen) in enumerate(zip(sequence, seq_lengths)):
-            # we need padding on both sentence and word level, but similar method
+            # for FOFE encoding we need padding on both sentence and word level
+            # on word level pad in front of word, on sentence level at the end of sentence
             if seq_type == "words":
                 seq_tensor[idx, seq_lengths.max()-seqlen:] = LongTensor(seq)
             elif seq_type == "sent":
@@ -182,9 +207,10 @@ class DataPrep:
 
         seq_lengths, perm_idx = seq_lengths.sort(
             0, descending=True)
-        seq_tensor = seq_tensor[perm_idx]
 
-        return (seq_tensor[perm_idx]) if seq_type == "words" else (seq_tensor, seq_lengths)
+        # on word level we want to keep original ordering
+        # on sentence level we sort by lengths, same for labels
+        return (seq_tensor) if seq_type == "words" else (seq_tensor[perm_idx], seq_lengths)
 
     def _prepare_sents(self, sents):
         sentences = []
@@ -216,6 +242,7 @@ class DataPrep:
             if language == "eng":
                 characters = string.printable
             elif language == "de":
+                # additional characters appearing in Tiger corpus
                 characters = string.printable + "äöüÄÖÜßéàâçèêôóáëãîÀÂÉÈÊÔÓÁЁÃÎ" + '§'
             self.vocab_char = ['<PAD>'] + sorted(characters)
             # ! PROBLEM: <PAD> is translated character by character -> change to 0
@@ -230,6 +257,7 @@ class DataPrep:
     def _prepare_labels(self, labels):
         batches_l = []
         for batch in self._batch(labels):
+            # pad labels same way as sentences to avoid reshaping for loss calculation
             padded_labels, padded_labels_lengths = self._prepare_seq_for_padding(
                 batch, "sent")
             batches_l.append((padded_labels, padded_labels_lengths))
@@ -240,10 +268,10 @@ if __name__ == "__main__":
     #prep_data = DataPrep("Atis.json", 8, "FOFE")
     #langauge = "eng"
 
-    prep_data = DataPrep("Atis.json", 8, "FOFE")
+    prep_data = DataPrep("data/Tiger/", 8, "FOFE")
 
     #  Forward function of future FOFE encoding layer
-    # input should be tensor with train_input and sent_lengths for later packing
+    # input should be tensor with train_input and sent_lengths for later packing and unpacking
     language = "de"
     if language == "eng":
         characters = string.printable
@@ -278,20 +306,3 @@ if __name__ == "__main__":
     print(test_seq2)
     test2 = forward(test_seq2, 0.5)
     print(test2)
-
-    # ------ MINIMAL EXAMPLE FOR FORWARD WITH DATA SET ------------
-    """ print(prep_data.train_input[0][-3])
-    test = forward(
-        ([prep_data.train_input[0][-3]], [prep_data.train_input[1][-3]]), 0.5)
-    print(test) """
-
-    # ------- TESTING BATCHES --------
-    # print(len(prep_data.train_input))
-    for batch in prep_data.train_input:
-        test = forward(batch, 0.5)
-        # print(test)
-
-    # ------ TESTING LABELS TRANSFORMATION ---------
-    # print(len(prep_data.train_labels))
-    # print(len(prep_data.train_labels[0][0][0]))
-    # print(len(prep_data.train_input[0][0][0]))
