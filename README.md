@@ -28,6 +28,7 @@ To test different parameter configurations there is a wrapper class for the tagg
   - Comment: Looking at the log, the model clearly overfits, the numbers are taken implying early stopping
   
 ## Future work
-Rerun hyperparameter optimisation on all four configurations
-Implement early stopping (at least for Tiger corpus)
+- Rerun hyperparameter optimisation on all four configurations
+- Implement early stopping (at least for Tiger corpus)
+- Visualise results
   
