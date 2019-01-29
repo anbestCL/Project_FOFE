@@ -7,7 +7,7 @@ num_epochs=($(seq 0 50 550))
 learn_rate=0.001
 reg_factor=0.0
 
-../py-scripts/tagger.py Classic ../../data/Tiger/ \
+../py-scripts/tagger.py Classic ../../data/Tiger/ params\
 --batch_size=$batch_size \
 --embedding_size=$embedding_size \
 --hidden_size=$hidden_size \

@@ -141,6 +141,8 @@ parser.add_argument('modelname', type=str,
                     help='type of model to be trained: FOFE encodings or Classic embeddings')
 parser.add_argument('datafile', type=str,
                     help='file or folder containing the data')
+parser.add_argument('paramfile', type=str,
+                    help='file or folder to save the model and metrics')
 parser.add_argument('--batch_size', type=int, default=8,
                     help='size of the data batches')
 parser.add_argument('--num_epochs', nargs='+', type=int, default=[0, 1, 5, 10],
@@ -148,7 +150,8 @@ parser.add_argument('--num_epochs', nargs='+', type=int, default=[0, 1, 5, 10],
 
 args = parser.parse_args()
 
-learner = Wrapper(args.modelname, args.datafile, args.batch_size)
+learner = Wrapper(args.modelname, args.datafile,
+                  args.paramfile, args.batch_size)
 params = {'num_epochs': args.num_epochs, 'embedding_size': [50, 100, 200], 'hidden_size': [50, 100, 200], 'dropout': {
     0.3, 0.5, 0.7}, 'learn_rate': [0.001, 0.01, 0.1], 'reg_factor': [0.0, 0.001, 0.01]}
 
