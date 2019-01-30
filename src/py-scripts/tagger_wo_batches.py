@@ -5,9 +5,9 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import string
-from prep import DataPrep
-from fofe_model import FOFE_Encoding, FOFE_GRU
-from classic_model import Classic_GRU
+from prep_wo_batches import DataPrep
+from fofe_model_wo_batches import FOFE_Encoding, FOFE_GRU
+from classic_model_wo_batches import Classic_GRU
 from sklearn.metrics import f1_score
 import time
 import argparse
@@ -83,7 +83,7 @@ class Tagger:
         if torch.cuda.is_available():
             model.cuda()
         # to ignore padded_elements in loss calculation set ignore_index = 0 since pad token has index 0
-        self.criterion = nn.CrossEntropyLoss(reduction='mean', ignore_index=0)
+        self.criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(),
                                lr=config['learn_rate'], weight_decay=config['reg_factor'])
 
@@ -102,13 +102,14 @@ class Tagger:
             loss_accum = 0.0
             train_data = list(
                 zip(self.data.train_input, self.data.train_labels))
-            random.shuffle(train_data) #shuffling of batches
-            for batch, (labels, lengths) in train_data:
+            #random.shuffle(train_data) #shuffling of batches
+            for sent, labels in train_data:
+                #print(sent)
                 if torch.cuda.is_available():
                     labels = labels.cuda()
                 optimizer.zero_grad()
-                output = model.forward(batch)
-                loss = self.criterion(output, labels)
+                output = model.forward(sent)
+                loss = self.criterion(output, torch.tensor(labels))
                 loss_accum += loss.data.item()
                 loss.backward()
                 optimizer.step()    
@@ -145,15 +146,15 @@ class Tagger:
         pred_labels = np.array([], dtype=int)
         act_labels = np.array([], dtype=int)
         loss_accum = 0.0
-        for batch, (labels, lengths) in zip(sents, labels):
+        for sent, label in zip(sents, labels):
             if torch.cuda.is_available():
-                labels = labels.cuda()
-            output = model.forward(batch)
-            loss = self.criterion(output, labels)
+                label = label.cuda()
+            output = model.forward(sent)
+            loss = self.criterion(output, torch.tensor(label))
             loss_accum += loss.data.item()
 
             act_labels = np.append(
-                act_labels, labels.data.cpu().numpy().flatten())
+                act_labels, label)
             _, preds = output.max(dim=1)
             pred_labels = np.append(
                 pred_labels, preds.data.cpu().numpy().flatten())
