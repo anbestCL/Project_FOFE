@@ -42,13 +42,13 @@ class Tagger:
                             used further in hyper optimisation script to select best configuration
     """
 
-    def __init__(self, modelname, datafile, paramfile, num_epochs, batch_size, **kwargs):
+    def __init__(self, modelname, datafile, paramfile, num_epochs, **kwargs):
 
         self._print_header(modelname, datafile, num_epochs,
-                           batch_size, **kwargs)
+                           **kwargs)
         self.paramfile = '{}_atis_{}'.format(paramfile, modelname) if datafile.endswith(
             "json") else '{}_tiger_{}'.format(paramfile, modelname)
-        self.data = DataPrep(datafile, batch_size, modelname)
+        self.data = DataPrep(datafile, modelname)
         self.numlabels = len(self.data.label_to_id)
         self.vocabsize = len(self.data.word_to_id)
         self.modelname = modelname
@@ -58,12 +58,12 @@ class Tagger:
             self.vocab_char_size = len(self.data.vocab_char)
 
     # functions to make log more readable
-    def _print_header(self, modelname, datafile, num_epochs, batch_size, **kwargs):
+    def _print_header(self, modelname, datafile, num_epochs, **kwargs):
         print("-------------------------------------------------------------------------")
         print("Training BIOS tagger on", datafile,
               "data set using", modelname, "model")
         print("-------------------------------------------------------------------------")
-        print("Model parameters: \n number of epochs:", num_epochs, "\n batch size:", batch_size, " \n embedding size:",
+        print("Model parameters: \n number of epochs:", num_epochs," \n embedding size:",
               kwargs['embedding_size'], "\n hidden size:", kwargs['hidden_size'], "\n dropout rate:", kwargs['dropout'], "\n learning rate:", kwargs['learn_rate'], "\n regularisation factor:", kwargs['reg_factor'])
 
     def _print(self, model):
@@ -102,14 +102,11 @@ class Tagger:
             loss_accum = 0.0
             train_data = list(
                 zip(self.data.train_input, self.data.train_labels))
-            #random.shuffle(train_data) #shuffling of batches
+            random.shuffle(train_data) #shuffling of batches
             for sent, labels in train_data:
-                #print(sent)
-                if torch.cuda.is_available():
-                    labels = labels.cuda()
                 optimizer.zero_grad()
                 output = model.forward(sent)
-                loss = self.criterion(output, torch.tensor(labels))
+                loss = self.criterion(output, labels)
                 loss_accum += loss.data.item()
                 loss.backward()
                 optimizer.step()    
@@ -147,14 +144,12 @@ class Tagger:
         act_labels = np.array([], dtype=int)
         loss_accum = 0.0
         for sent, label in zip(sents, labels):
-            if torch.cuda.is_available():
-                label = label.cuda()
             output = model.forward(sent)
-            loss = self.criterion(output, torch.tensor(label))
+            loss = self.criterion(output, label)
             loss_accum += loss.data.item()
 
             act_labels = np.append(
-                act_labels, label)
+                act_labels, label.data.cpu().numpy().flatten())
             _, preds = output.max(dim=1)
             pred_labels = np.append(
                 pred_labels, preds.data.cpu().numpy().flatten())
@@ -227,8 +222,6 @@ if __name__ == '__main__':
                         help='file or folder containing the data')
     parser.add_argument('paramfile', type=str,
                         help='file or folder to save the model and metrics')
-    parser.add_argument('--batch_size', type=int, default=20,
-                        help='size of the data batches')
     parser.add_argument('--embedding_size', type=int, default=100,
                         help='size of the word embeddings when using ')
     parser.add_argument('--hidden_size', type=int, default=100,
@@ -244,7 +237,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    tagger = Tagger(args.modelname, args.datafile, args.paramfile, args.num_epochs, args.batch_size, embedding_size=args.embedding_size,
+    tagger = Tagger(args.modelname, args.datafile, args.paramfile, args.num_epochs, embedding_size=args.embedding_size,
                     hidden_size=args.hidden_size, dropout=args.dropout, learn_rate=args.learn_rate, reg_factor=args.reg_factor)
     metrics = tagger.train(args.num_epochs, seed=0, embedding_size=args.embedding_size,
                 learn_rate=args.learn_rate, reg_factor=args.reg_factor,

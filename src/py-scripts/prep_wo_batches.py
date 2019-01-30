@@ -20,15 +20,13 @@ class DataPrep:
 
     Arguments:
         datafile {string} - path to data
-        batch_size {number} - size of training batches
         modelname {string} - either "FOFE" for Fofe character encoding or "Classic" for classic trainable embedding layer
 
     Returns:
         None -- prepared sentences and labels stored as class variables
     """
 
-    def __init__(self, datafile, batchsize, modelname):
-        self.batch_size = batchsize
+    def __init__(self, datafile, modelname):
         self.train_sents = []
         self.dev_sents = []
         self.test_sents = []
@@ -39,12 +37,12 @@ class DataPrep:
 
         # format data depending on corpus
         if datafile.endswith(".json"):
-            self._init_atis(datafile, batchsize, modelname)
+            self._init_atis(datafile, modelname)
         elif datafile.endswith("Tiger/"):
-            self._init_tiger(datafile, batchsize, modelname)
+            self._init_tiger(datafile, modelname)
 
     # Following functions are specific for the transformation of the Atis dataset
-    def _init_atis(self, datafile, batchsize, modelname):
+    def _init_atis(self, datafile, modelname):
         with open(datafile, "r") as f:
             data = json.load(f)
         self._read_Atis_data(data)
@@ -56,6 +54,13 @@ class DataPrep:
             self.train_input = self._prepare_data(self.train_sents, "eng")
             self.dev_input = self._prepare_data(self.dev_sents, "eng")
             self.test_input = self._prepare_data(self.test_sents, "eng")
+        else:
+            self.train_input = [torch.tensor(sent).cuda() if torch.cuda.is_available(
+            ) else torch.tensor(sent) for sent in self.train_sents]
+            self.dev_input = [torch.tensor(sent).cuda() if torch.cuda.is_available(
+            ) else torch.tensor(sent) for sent in self.dev_sents]
+            self.test_input = [torch.tensor(sent).cuda() if torch.cuda.is_available(
+            ) else torch.tensor(sent) for sent in self.test_sents]
 
     def _read_Atis_data(self, data):
         # Extract data from file
@@ -63,6 +68,8 @@ class DataPrep:
         self.label_to_id = data["label_dict"]
         self.test_sents = data["test_sents"]
         self.test_labels = data["test_labels"]
+        self.test_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
+        ) else torch.tensor(labels) for labels in self.test_labels]
 
         # we also want to create a dev set by splitting the training data
         train_dev_sents = data["train_sents"]
@@ -71,9 +78,13 @@ class DataPrep:
 
         self.train_sents = train_dev_sents[:num_train]
         self.train_labels = train_dev_labels[:num_train]
+        self.train_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
+        ) else torch.tensor(labels) for labels in self.train_labels]
 
         self.dev_sents = train_dev_sents[num_train:]
         self.dev_labels = train_dev_labels[num_train:]
+        self.dev_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
+        ) else torch.tensor(labels) for labels in self.dev_labels]
 
     def _reorganize(self, sentences, i, j):
         replacement = {i: j, j: i}
@@ -205,14 +216,6 @@ class DataPrep:
         # on sentence level we sort by lengths, same for labels
         return (seq_tensor) if seq_type == "words" else (seq_tensor[perm_idx], seq_lengths)
 
-    def _prepare_sents(self, sents):
-        return self._prepare_seq_for_padding(sents, "words")
-
-    def _batch(self, seq):
-        l = len(seq)
-        for ndx in range(0, l, self.batch_size):
-            yield seq[ndx:min(ndx + self.batch_size, l)]
-
     def _prepare_data(self, sents, language):
 
         # Prepare sentences for packing
@@ -240,17 +243,9 @@ class DataPrep:
             # Prepare words for packing
             input_prep = self._prepare_seq_for_padding(
                 vectorized_sent, "words")
-            batches.append(input_prep)
+            batches.append(input_prep.cuda()) if torch.cuda.is_available(
+            ) else batches.append(input_prep)
         return batches
-
-    def _prepare_labels(self, labels):
-        batches_l = []
-        for batch in self._batch(labels):
-            # pad labels same way as sentences to avoid reshaping for loss calculation
-            padded_labels, padded_labels_lengths = self._prepare_seq_for_padding(
-                batch, "sent")
-            batches_l.append((padded_labels, padded_labels_lengths))
-        return batches_l
 
 
 if __name__ == "__main__":
