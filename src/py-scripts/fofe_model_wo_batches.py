@@ -82,7 +82,6 @@ class FOFE_GRU(nn.Module):
             out = self.linear(out.cuda())
         else:
             out = self.linear(out)
-        #out = out.view(-1, out.size(2), out.size(1))
         out = torch.squeeze(out,0)
         return out
 

@@ -9,12 +9,14 @@ from prep_wo_batches import DataPrep
 from fofe_model_wo_batches import FOFE_Encoding, FOFE_GRU
 from classic_model_wo_batches import Classic_GRU
 from sklearn.metrics import f1_score
+from sklearn.utils.class_weight import compute_class_weight
 import time
 import argparse
 import pickle
 import copy
-from collections import defaultdict
+from collections import defaultdict, Counter
 import random
+import sklearn
 
 
 ###### MAIN PROCESSING #############
@@ -23,7 +25,7 @@ class Tagger:
 
     """This is the main training class for the tagger: it implements a bidirectional GRU with the Adam optimizer
    (eval function is integrated in train function) and a predict function to print out predicted tag sequences.
-    
+
     Arguments:
         modelname {string} - either "FOFE" for Fofe character encoding or "Classic" for classic trainable embedding layer
         datafile {string} - path to data
@@ -63,7 +65,7 @@ class Tagger:
         print("Training BIOS tagger on", datafile,
               "data set using", modelname, "model")
         print("-------------------------------------------------------------------------")
-        print("Model parameters: \n number of epochs:", num_epochs," \n embedding size:",
+        print("Model parameters: \n number of epochs:", num_epochs, " \n embedding size:",
               kwargs['embedding_size'], "\n hidden size:", kwargs['hidden_size'], "\n dropout rate:", kwargs['dropout'], "\n learning rate:", kwargs['learn_rate'], "\n regularisation factor:", kwargs['reg_factor'])
 
     def _print(self, model):
@@ -94,7 +96,8 @@ class Tagger:
         # used further in hyper optimisation script to select best configuration
         metrics = defaultdict()
 
-        for epoch in range(num_epochs[-1]+1): # to evaluate at all checkpoints given in num_epochs
+        # to evaluate at all checkpoints given in num_epochs
+        for epoch in range(num_epochs[-1]+1):
             print(
                 "-------------------------------------------------------------------------")
             print("epoch:", epoch)
@@ -102,19 +105,19 @@ class Tagger:
             loss_accum = 0.0
             train_data = list(
                 zip(self.data.train_input, self.data.train_labels))
-            random.shuffle(train_data) #shuffling of batches
+            random.shuffle(train_data)  # shuffling of batches
             for sent, labels in train_data:
                 optimizer.zero_grad()
                 output = model.forward(sent)
                 loss = self.criterion(output, labels)
                 loss_accum += loss.data.item()
                 loss.backward()
-                optimizer.step()    
+                optimizer.step()
             train_loss = loss_accum/len(self.data.train_input)
             print("\t train loss: \t", train_loss)
 
             # evaluation checkpoint
-            if epoch in num_epochs: 
+            if epoch in num_epochs:
                 self._print(model)
                 dev_loss, acc, f1_macro, f1_weighted = self._eval(
                     model, epoch, (self.data.dev_input, self.data.dev_labels), "dev", best_metrics)
@@ -172,8 +175,8 @@ class Tagger:
 
             print("\t dev loss \t", loss)
             print("\t acc \t", best_metrics['acc'])
-            print("\t f1 macro \t", best_metrics['f1_macro'])
-            print("\t f1 weighted \t", best_metrics['f1_weighted'])
+            print("\t f1 inversely weighted \t", best_metrics['f1_macro'])
+            print("\t f1 class weighted \t", best_metrics['f1_weighted'])
 
         return (loss, acc, f1_macro, f1_weighted) if type == "dev" else loss
 
@@ -183,23 +186,24 @@ class Tagger:
         acc = sum([1 for a, a2 in zip(pred_labels, act_labels)
                    if a == a2])/len(pred_labels)
 
-        # calculating f1-score
-        # ignore Pad token in true labels:
-        def ignore_0(l):
-            lab = np.unique(l)
-            index = [0]
-            lab = np.delete(lab, index)
+        # calculate inverse weights for classes
+        counted_labels = Counter(act_labels)
+        counted_labels = {label: 1/count for label,
+                          count in counted_labels.items()}
+        sample_weights = [counted_labels[label] for label in act_labels]
+
+        # weight classes by inverse frequency
         f1_macro = f1_score(
-            act_labels, pred_labels, average='macro', labels=ignore_0(act_labels))
+            act_labels, pred_labels, average='macro', sample_weight=sample_weights)
 
         f1_weighted = f1_score(
-            act_labels, pred_labels, average='weighted', labels=ignore_0(act_labels))
+            act_labels, pred_labels, average='weighted')
 
         return acc, f1_macro, f1_weighted
 
-    def predict(self, path, sent, sent_char, labels):
+    def predict(self, path, sent, labels):
         model = torch.load(path)
-        output_test = model.forward(sent_char)
+        output_test = model.forward(sent)
         _, pred_labels = output_test.max(dim=1)
         pred_labels = pred_labels.data.cpu().numpy()
         labels = labels.data.cpu().numpy()
@@ -208,7 +212,7 @@ class Tagger:
                        id in self.data.label_to_id.items()}
         id_to_word = {id: word for word, id in self.data.word_to_id.items()}
         for i, word in enumerate(sent):
-            print(id_to_word[sent[i]], "true label:",id_to_label[labels[i]],
+            print(id_to_word[sent[i]], "true label:", id_to_label[labels[i]],
                   "predicted label:", id_to_label[pred_labels[0][i]])
 
 
@@ -240,15 +244,11 @@ if __name__ == '__main__':
     tagger = Tagger(args.modelname, args.datafile, args.paramfile, args.num_epochs, embedding_size=args.embedding_size,
                     hidden_size=args.hidden_size, dropout=args.dropout, learn_rate=args.learn_rate, reg_factor=args.reg_factor)
     metrics = tagger.train(args.num_epochs, seed=0, embedding_size=args.embedding_size,
-                learn_rate=args.learn_rate, reg_factor=args.reg_factor,
-                 hidden_size=args.hidden_size, dropout=args.dropout)
+                           learn_rate=args.learn_rate, reg_factor=args.reg_factor,
+                           hidden_size=args.hidden_size, dropout=args.dropout)
 
-    test_sent = tagger.data.test_sents[0]
-    test_sents_char = tagger.data.test_input[0][0][0]
-    test_sents_l = tagger.data.test_input[0][1][0].data.cpu().numpy()
-    test_sents_l = torch.tensor(np.array([test_sents_l]))
-    test_labels = tagger.data.test_labels[0][0][0]
+    #test_sent = tagger.data.test_input[0]
+    #test_labels = tagger.data.test_labels[0]
 
-    #tagger.predict("trained_models/fofe_encoding/params_atis_fofe.nnp", test_sent,
-                   #([test_sents_char], test_sents_l), test_labels)
-
+    # tagger.predict(
+    # "trained_models/fofe_encoding/params_atis_fofe.nnp", test_sent, test_labels)

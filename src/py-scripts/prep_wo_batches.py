@@ -46,7 +46,6 @@ class DataPrep:
         with open(datafile, "r") as f:
             data = json.load(f)
         self._read_Atis_data(data)
-        # self._reorganize_Atis_data()
 
         # for the fofe encoding we need to pass the language to get
         # the correct character vocabulary
@@ -86,37 +85,9 @@ class DataPrep:
         self.dev_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
         ) else torch.tensor(labels) for labels in self.dev_labels]
 
-    def _reorganize(self, sentences, i, j):
-        replacement = {i: j, j: i}
-        return [[replacement.get(id, id) for id in sentence] for sentence in sentences]
-
-    def _reorganize_labels(self, labels):
-        return [[label+1 for label in sents] for sents in labels]
-
-    def _reorganize_Atis_data(self):
-        # Atis sentences are already indexed
-        new_word_id = self.word_to_id["<PAD>"]
-        word = [key for key, value in self.word_to_id.items() if value ==
-                0]  # "'d"
-        # switch index of <PAD> to 0 in sentences
-        self.train_sents = self._reorganize(self.train_sents, new_word_id, 0)
-        self.dev_sents = self._reorganize(self.dev_sents, new_word_id, 0)
-        self.test_sents = self._reorganize(self.test_sents, new_word_id, 0)
-
-        self.word_to_id["".join(word)] = 572
-        self.word_to_id["<PAD>"] = 0
-
-        # shift all indizes by 1 to insert <PAD> token with index 0 for padding
-        self.label_to_id = {label: id+1 for (label,
-                                             id) in self.label_to_id.items()}
-        self.label_to_id["<PAD>"] = 0
-        self.train_labels = self._reorganize_labels(self.train_labels)
-        self.dev_labels = self._reorganize_labels(self.dev_labels)
-        self.test_labels = self._reorganize_labels(self.test_labels)
-
     # Following functions are specific to treating Tiger data
 
-    def _init_tiger(self, datafile, batchsize, modelname):
+    def _init_tiger(self, datafile, modelname):
         self.tagset = set()
         self.vocab = set()
 
@@ -141,16 +112,23 @@ class DataPrep:
         # 1000 for development and 200 for testing
         if modelname == "FOFE":
             self.train_input = self._prepare_data(
-                self.train_sents, "de")[:5000]
-            self.dev_input = self._prepare_data(self.dev_sents, "de")[:1000]
-            self.test_input = self._prepare_data(self.test_sents, "de")[:200]
+                self.train_sents, "de")[:10000]
+            self.dev_input = self._prepare_data(self.dev_sents, "de")[:5000]
+            self.test_input = self._prepare_data(self.test_sents, "de")[:1000]
         elif modelname == "Classic":
-            self.train_input = self._prepare_labels(self.train_sents)[:5000]
-            self.dev_input = self._prepare_labels(self.dev_sents)[:1000]
-            self.test_input = self._prepare_labels(self.test_sents)[:200]
-        self.train_labels = self._prepare_labels(self.train_labels)[:5000]
-        self.dev_labels = self._prepare_labels(self.dev_labels)[:1000]
-        self.test_labels = self._prepare_labels(self.test_labels)[:200]
+            self.train_input = [torch.tensor(sent).cuda() if torch.cuda.is_available(
+            ) else torch.tensor(sent) for sent in self.train_sents[:10000]]
+            self.dev_input = [torch.tensor(sent).cuda() if torch.cuda.is_available(
+            ) else torch.tensor(sent) for sent in self.dev_sents[:5000]]
+            self.test_input = [torch.tensor(sent).cuda() if torch.cuda.is_available(
+            ) else torch.tensor(sent) for sent in self.test_sents[:1000]]
+
+        self.train_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
+        ) else torch.tensor(labels) for labels in self.train_labels[:10000]]
+        self.dev_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
+        ) else torch.tensor(labels) for labels in self.dev_labels[:5000]]
+        self.test_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
+        ) else torch.tensor(labels) for labels in self.test_labels[:1000]]
 
     def _read_Tiger_data(self, file, sentences, labels):
 
@@ -171,10 +149,8 @@ class DataPrep:
                 sentence_tags = []
 
     def _reorganize_Tiger_data(self):
-        self.word_to_id = {word: i+1 for i, word in enumerate(self.vocab)}
-        self.word_to_id["<PAD>"] = 0
-        self.label_to_id = {label: i+1 for i, label in enumerate(self.tagset)}
-        self.label_to_id["<PAD>"] = 0
+        self.word_to_id = {word: i for i, word in enumerate(self.vocab)}
+        self.label_to_id = {label: i for i, label in enumerate(self.tagset)}
 
         # Tiger sentences and labels are strings, need to transform to indexes
         self.train_sents = [[self.word_to_id[word]
@@ -184,19 +160,18 @@ class DataPrep:
         self.test_sents = [[self.word_to_id[word]
                             for word in sent] for sent in self.test_sents]
 
-        self.train_labels = [[self.label_to_id[word]
-                              for word in sent] for sent in self.train_labels]
-        self.dev_labels = [[self.label_to_id[word]
-                            for word in sent] for sent in self.dev_labels]
-        self.test_labels = [[self.label_to_id[word]
-                             for word in sent] for sent in self.test_labels]
+        self.train_labels = [[self.label_to_id[label]
+                              for label in sent] for sent in self.train_labels]
+        self.dev_labels = [[self.label_to_id[label]
+                            for label in sent] for sent in self.dev_labels]
+        self.test_labels = [[self.label_to_id[label]
+                             for label in sent] for sent in self.test_labels]
 
     # Following functions prepare data (both Atis and Tiger) to give as input to model
 
-    def _prepare_seq_for_padding(self, sequence, seq_type):
+    def _prepare_seq_for_padding(self, sequence):
 
-        # padding steps to make packing of batches using Pytorch function
-        # pack_padded_sequence possible
+        # padding of words to give later to FOFE Encoding layer
 
         seq_lengths = LongTensor(list(map(len, sequence)))
         seq_tensor = Variable(torch.zeros(
@@ -204,17 +179,9 @@ class DataPrep:
         for idx, (seq, seqlen) in enumerate(zip(sequence, seq_lengths)):
             # for FOFE encoding we need padding on both sentence and word level
             # on word level pad in front of word, on sentence level at the end of sentence
-            if seq_type == "words":
-                seq_tensor[idx, seq_lengths.max()-seqlen:] = LongTensor(seq)
-            elif seq_type == "sent":
-                seq_tensor[idx, :seqlen] = LongTensor(seq)
+            seq_tensor[idx, seq_lengths.max()-seqlen:] = LongTensor(seq)
 
-        seq_lengths, perm_idx = seq_lengths.sort(
-            0, descending=True)
-
-        # on word level we want to keep original ordering
-        # on sentence level we sort by lengths, same for labels
-        return (seq_tensor) if seq_type == "words" else (seq_tensor[perm_idx], seq_lengths)
+        return seq_tensor
 
     def _prepare_data(self, sents, language):
 
@@ -222,8 +189,6 @@ class DataPrep:
         id_to_word = {id: word for word, id in self.word_to_id.items()}
         batches = []
         for sent in sents:
-            # sent_input, sent_lengths = self._prepare_seq_for_padding(
-                # sent, "sent")
             # Sentences are indexes, for FOFE encoding need words -> transform sequences of indexes
             # to sequences of strings
             sent_strings = [id_to_word[id] for id in sent]
@@ -236,23 +201,23 @@ class DataPrep:
                 # additional characters appearing in Tiger corpus
                 characters = string.printable + "äöüÄÖÜßéàâçèêôóáëãîÀÂÉÈÊÔÓÁЁÃÎ" + '§'
             self.vocab_char = ['<PAD>'] + sorted(characters)
-            # ! PROBLEM: <PAD> is translated character by character -> change to 0
+
             vectorized_sent = [[self.vocab_char.index(
-                tok) if seq != '<PAD>' else 0 for tok in seq] for seq in sent_strings]
+                tok) for tok in seq] for seq in sent_strings]
 
             # Prepare words for packing
             input_prep = self._prepare_seq_for_padding(
-                vectorized_sent, "words")
+                vectorized_sent)
             batches.append(input_prep.cuda()) if torch.cuda.is_available(
             ) else batches.append(input_prep)
         return batches
 
 
 if __name__ == "__main__":
-    prep_data = DataPrep("data/Atis.json", 8, "Classic")
+    prep_data = DataPrep("data/Atis.json", "Classic")
     langauge = "eng"
 
-    #prep_data = DataPrep("data/Tiger/", 8, "FOFE")
+    #prep_data = DataPrep("data/Tiger/", "FOFE")
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing and unpacking

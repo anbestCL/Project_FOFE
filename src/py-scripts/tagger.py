@@ -102,7 +102,7 @@ class Tagger:
             loss_accum = 0.0
             train_data = list(
                 zip(self.data.train_input, self.data.train_labels))
-            random.shuffle(train_data) #shuffling of batches
+            #random.shuffle(train_data) #shuffling of batches
             for batch, (labels, lengths) in train_data:
                 if torch.cuda.is_available():
                     labels = labels.cuda()

@@ -6,7 +6,7 @@ num_epochs=($(seq 0 5 20))
 learn_rate=0.01
 reg_factor=0.0
 
-./tagger_wo_batches.py Classic data/Atis.json params\
+./tagger_wo_batches.py Classic data/Atis.json params \
 --embedding_size=$embedding_size \
 --hidden_size=$hidden_size \
 --num_epochs "${num_epochs[@]}" \
