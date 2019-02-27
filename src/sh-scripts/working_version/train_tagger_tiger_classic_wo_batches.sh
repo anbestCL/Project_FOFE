@@ -2,8 +2,8 @@
 
 embedding_size=50
 hidden_size=50
-num_epochs=($(seq 0 5 30))
-learn_rate=0.01
+num_epochs=($(seq 0 5 40))
+learn_rate=0.001
 reg_factor=0.0
 
 ./tagger_wo_batches.py Classic data/Tiger/ params \

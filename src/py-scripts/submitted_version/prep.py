@@ -69,6 +69,7 @@ class DataPrep:
         self.word_to_id = data["vocab"]
         self.label_to_id = data["label_dict"]
         self.test_sents = data["test_sents"]
+        print(len(self.test_sents))
         self.test_labels = data["test_labels"]
 
         # we also want to create a dev set by splitting the training data
@@ -77,9 +78,11 @@ class DataPrep:
         num_train = math.floor(0.8 * len(train_dev_sents))
 
         self.train_sents = train_dev_sents[:num_train]
+        print(len(self.train_sents))
         self.train_labels = train_dev_labels[:num_train]
 
         self.dev_sents = train_dev_sents[num_train:]
+        print(len(self.dev_sents))
         self.dev_labels = train_dev_labels[num_train:]
 
     def _reorganize(self, sentences, i, j):
@@ -265,10 +268,10 @@ class DataPrep:
 
 
 if __name__ == "__main__":
-    #prep_data = DataPrep("Atis.json", 8, "FOFE")
+    prep_data = DataPrep("Atis.json", 8, "FOFE")
     #langauge = "eng"
 
-    prep_data = DataPrep("data/Tiger/", 8, "FOFE")
+    #prep_data = DataPrep("data/Tiger/", 8, "FOFE")
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing and unpacking

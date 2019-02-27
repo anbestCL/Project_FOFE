@@ -2,7 +2,7 @@
 
 embedding_size=50
 hidden_size=50
-num_epochs=($(seq 0 5 30)) 
+num_epochs=($(seq 0 5 50)) 
 learn_rate=0.001
 reg_factor=0.0
 

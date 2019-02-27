@@ -152,7 +152,7 @@ args = parser.parse_args()
 
 learner = Wrapper(args.modelname, args.datafile,
                   args.paramfile, args.batch_size)
-params = {'num_epochs': args.num_epochs, 'embedding_size': [50, 100, 200], 'hidden_size': [50, 100, 200], 'dropout': {
+params = {'num_epochs': args.num_epochs, 'embedding_size': [50], 'hidden_size': [50, 100, 200], 'dropout': {
     0.3, 0.5, 0.7}, 'learn_rate': [0.001, 0.01, 0.1], 'reg_factor': [0.0, 0.001, 0.01]}
 
 best_model, best_config, associated_test_cost = random_search(

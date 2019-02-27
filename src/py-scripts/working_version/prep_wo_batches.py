@@ -65,7 +65,9 @@ class DataPrep:
         # Extract data from file
         self.word_to_id = data["vocab"]
         self.label_to_id = data["label_dict"]
+        print(len(self.label_to_id))
         self.test_sents = data["test_sents"]
+        print(len(self.test_sents))
         self.test_labels = data["test_labels"]
         self.test_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
         ) else torch.tensor(labels) for labels in self.test_labels]
@@ -76,11 +78,13 @@ class DataPrep:
         num_train = math.floor(0.8 * len(train_dev_sents))
 
         self.train_sents = train_dev_sents[:num_train]
+        print(len(self.train_sents))
         self.train_labels = train_dev_labels[:num_train]
         self.train_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
         ) else torch.tensor(labels) for labels in self.train_labels]
 
         self.dev_sents = train_dev_sents[num_train:]
+        print(len(self.dev_sents))
         self.dev_labels = train_dev_labels[num_train:]
         self.dev_labels = [torch.tensor(labels).cuda() if torch.cuda.is_available(
         ) else torch.tensor(labels) for labels in self.dev_labels]
@@ -105,7 +109,7 @@ class DataPrep:
                     with open(dirpath+filename) as f:
                         self._read_Tiger_data(
                             f, self.test_sents, self.test_labels)
-
+        print(len(self.tagset))
         self._reorganize_Tiger_data()
 
         # since Tiger data set is very large use only 1000 batches for training,
@@ -214,10 +218,10 @@ class DataPrep:
 
 
 if __name__ == "__main__":
-    prep_data = DataPrep("data/Atis.json", "Classic")
+    #prep_data = DataPrep("data/Atis.json", "Classic")
     langauge = "eng"
 
-    #prep_data = DataPrep("data/Tiger/", "FOFE")
+    prep_data = DataPrep("data/Tiger/", "FOFE")
 
     #  Forward function of future FOFE encoding layer
     # input should be tensor with train_input and sent_lengths for later packing and unpacking
