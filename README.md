@@ -1,14 +1,14 @@
 # FOFE Character Encoding
 
-## Structure of project
+## Project
 
 This project's first aim is to implement a neural layer in Pytorch which performs the FOFE method on character level described in [Zhang et al. (2015)](http://www.aclweb.org/anthology/P15-2081) to embed to the words. This layer is then passed to a bidirectional GRU architecture.
 In a second step the new FOFE layer is compared to a classical, randomly initialised embedding layer.
 The two architectures are tested on the English [ATIS dataset](https://github.com/Microsoft/CNTK/tree/master/Examples/LanguageUnderstanding/ATIS/Data) and on parts of the German [Tiger Corpus](http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora/TIGERCorpus/download/start.html).
 
-## Structure of repository
+## Repository
 
-The [source](src) folder includes python and bash scripts designed for the different configurations. There is a main [tagger](src/py-scripts/tagger.py) script which uses the [FOFE](../src/py-scripts/fofe_model.py)_ or the [Classic](src/py-scripts/classic_model.py) depending on the model to be trained. [Data preparation](src/py-scripts/prep.py) for both corpora is done in advance.
+The [source](src) folder includes python and bash scripts designed for the different configurations. There is a main [tagger](src/py-scripts/tagger.py) program which uses the [FOFE](src/py-scripts/fofe_model.py)_ or the [Classic](src/py-scripts/classic_model.py) depending on the model to be trained. [Data preparation](src/py-scripts/prep.py) for both corpora is done in advance.
 To test different parameter configurations there is a wrapper class for the tagger module which can be used for [hyper paramter optimisation](src/py-scripts/hyperopt.py).
 
 ### Implementation
