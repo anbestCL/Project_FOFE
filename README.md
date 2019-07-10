@@ -2,13 +2,13 @@
 
 ## Structure of project
 
-This project's first aim is to implement a neural layer in Pytorch which performs the FOFE character encoding described in [Zhang et al. (2015)](http://www.aclweb.org/anthology/P15-2081) to embed to the words. This layer is then passed to a bidirectional GRU architecture.
-In a second step the FOFE encoding is compared to a classical embedding layer which is initialised randomly.
-The two architectures are tested on the English [ATIS dataset](https://github.com/Microsoft/CNTK/tree/master/Examples/LanguageUnderstanding/ATIS/Data) and on a part of the German [Tiger Corpus](http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora/TIGERCorpus/download/start.html).
+This project's first aim is to implement a neural layer in Pytorch which performs the FOFE method on character level described in [Zhang et al. (2015)](http://www.aclweb.org/anthology/P15-2081) to embed to the words. This layer is then passed to a bidirectional GRU architecture.
+In a second step the new FOFE layer is compared to a classical, randomly initialised embedding layer.
+The two architectures are tested on the English [ATIS dataset](https://github.com/Microsoft/CNTK/tree/master/Examples/LanguageUnderstanding/ATIS/Data) and on parts of the German [Tiger Corpus](http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora/TIGERCorpus/download/start.html).
 
 ## Structure of repository
 
-The _src_ folder includes python and bash scripts designed for the different configurations. There is a main python script _tagger.py_ which uses the _fofe_model.py_ or _classic_model.py_ depending on the model to be trained. Data preparation for both corpora is done in _prep.class_.
+The _src_ folder includes python and bash scripts designed for the different configurations. There is a main python script _tagger.py_ which uses the _fofe_model.py_ or _classic_model.py_ depending on the model to be trained. Data preparation for both corpora is done in _prep.py_.
 To test different parameter configurations there is a wrapper class for the tagger module which is used for hyper paramter optimisation in _hyperopt.py_
 
 ## Preliminary results
