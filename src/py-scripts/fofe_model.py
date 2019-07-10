@@ -7,7 +7,7 @@ import numpy as np
 import string
 import math
 import json
-from prep_wo_batches import DataPrep
+from prep import DataPrep
 
 
 class FOFE_Encoding(nn.Module):

@@ -1,14 +1,12 @@
 #!/bin/bash
 
-batch_size=20
-embedding_size=100
-hidden_size=200
-num_epochs=($(seq 0 50 550)) 
+embedding_size=50
+hidden_size=50
+num_epochs=($(seq 0 5 40))
 learn_rate=0.001
 reg_factor=0.0
 
-../py-scripts/tagger.py FOFE ../../data/Atis.json params\
---batch_size=$batch_size \
+./tagger.py Classic data/Tiger/ params \
 --embedding_size=$embedding_size \
 --hidden_size=$hidden_size \
 --num_epochs "${num_epochs[@]}" \

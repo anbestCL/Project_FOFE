@@ -39,23 +39,14 @@ class Classic_GRU(nn.Module):
             in_features=2*self.hidden_size, out_features=numlabels)
 
     def forward(self, x):
-        x, lengths = x
-        if torch.cuda.is_available():
-            x = x.cuda()
-            lengths = lengths.cuda()
         x = self.dropout(self.embedding(x))
-        # packed sequences only supported by rnn layers, so pack before rnn layer and unpack afterwards
-        packed_input = pack_padded_sequence(
-            x, lengths.cpu().numpy(), batch_first=True)
-        packed_output, _ = self.gru(packed_input)
+        x = torch.unsqueeze(x, 0)
+        output, _ = self.gru(x)
 
-        # unpack output of GRU
-        padded, _ = pad_packed_sequence(
-            packed_output, padding_value=0.0, batch_first=True)
         if torch.cuda.is_available():
-            out = self.linear(padded.cuda())
+            out = self.linear(output.cuda())
         else:
-            out = self.linear(padded)
+            out = self.linear(output)
         # resizing for CrossEntropyLoss
-        out = out.view(-1, out.size(2), out.size(1))
+        out = torch.squeeze(out, 0)
         return out

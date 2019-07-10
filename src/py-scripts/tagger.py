@@ -5,9 +5,9 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import string
-from prep_wo_batches import DataPrep
-from fofe_model_wo_batches import FOFE_Encoding, FOFE_GRU
-from classic_model_wo_batches import Classic_GRU
+from prep import DataPrep
+from fofe_model import FOFE_Encoding, FOFE_GRU
+from classic_model import Classic_GRU
 from sklearn.metrics import f1_score
 from sklearn.utils.class_weight import compute_class_weight
 import time
