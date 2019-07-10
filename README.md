@@ -9,7 +9,7 @@ The two architectures are tested on the English [ATIS dataset](https://github.co
 ## Structure of repository
 
 The [source](../src) folder includes python and bash scripts designed for the different configurations. There is a main [tagger](../src/py-scripts/tagger.py) script which uses the [FOFE](../src/py-scripts/fofe_model.py)_ or the [Classic](../src/py-scripts/classic_model.py) depending on the model to be trained. [Data preparation](../src/py-scripts/prep.py) for both corpora is done in advance.
-To test different parameter configurations there is a wrapper class for the tagger module which can be used for hyper paramter optimisation in _hyperopt.py_.
+To test different parameter configurations there is a wrapper class for the tagger module which can be used for [hyper paramter optimisation](../src/py-scripts/hyperopt.py).
 
 ### Implementation
 
@@ -29,7 +29,7 @@ Atis/Tiger | FOFE  | Classic | FOFE  | Classic  | FOFE  | Classic  | FOFE  | Cla
  Atis| 0.28   | 0.04  | 0.34  | 0.08  | 0.47 | 0.19 | 0.91 | 0.98 | 0.48 | 0.74 | 0.98
  Tiger |  0.94 |   0.11| 0.92  |  0.38 | 0.99 | 0.49 |0.71 | 0.91 | 0.5 | 0.78 | 1.27
  
-More details including visualisations can be found in the paper.
+More details including visualisations can be found in the written [report](../documentation.pdf).
 
 ### Conclusion
 
